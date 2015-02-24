@@ -3,7 +3,7 @@
 adt ^
  -package ^
  -target ane ../example/libs/AirCast.ane extension.xml ^
- -swc ../actionscript/bin/aircast-lib.swc ^
+ -swc ../swc/bin/aircast-lib.swc ^
  -platform iPhone-ARM -C ios . ^
  -platform default -C default . 
 
