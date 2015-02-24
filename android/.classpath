@@ -8,5 +8,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/android-support-v7-appcompat"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/android-support-v7-mediarouter"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/google-play-services_lib"/>
+	<classpathentry kind="lib" path="libs"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

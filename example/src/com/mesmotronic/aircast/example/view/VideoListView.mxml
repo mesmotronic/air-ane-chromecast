@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View 
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark" 
+	title="Videos"
+	creationComplete="creationCompleteHandler(event)"
+	destructionPolicy="never"
+	>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.mesmotronic.ane.aircast.AirCast;
+			import com.mesmotronic.ane.aircast.events.AirCastMediaEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			import spark.events.IndexChangeEvent;
+			
+			public const MEDIA_BUCKET_URL:String = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/";
+			public const MEDIA_LIST_URL:String = MEDIA_BUCKET_URL+"videos-enhanced-b.json";
+			
+			public var airCast:AirCast = AirCast.instance;
+			public var media:ArrayCollection = new ArrayCollection();
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				var loader:URLLoader = new URLLoader();
+				loader.addEventListener(Event.COMPLETE, loader_completeHandler);
+				loader.load(new URLRequest(MEDIA_LIST_URL));
+			}
+			
+			protected function loader_completeHandler(event:Event):void
+			{
+				var loader:URLLoader = event.currentTarget as URLLoader;
+				var data:Object = JSON.parse(loader.data);
+				var videos:Array = data.categories[0].videos;
+				
+				for each (var video:Object in videos)
+				{
+					video.thumb = MEDIA_BUCKET_URL+video.thumb;
+				}
+				
+				media.source = videos;
+				
+				currentState = 'list';
+				
+				trace(loader.data);
+			}
+			
+			protected function mediaList_changeHandler(event:IndexChangeEvent):void
+			{
+				var video:Object = mediaList.selectedItem;
+				
+				if (video)
+				{
+					airCast.loadMedia(video.sources[0], video.thumb, video.title, video.subtitle, 'video/mp4', 0, true);
+					airCast.addEventListener(AirCastMediaEvent.STATUS_CHANGED, airCast_statusChangedHandler);
+				}
+			}
+			
+			protected function progressSlider_changeHandler(event:Event):void
+			{
+				
+			}
+			
+			protected function airCast_statusChangedHandler(event:AirCastMediaEvent):void
+			{
+				trace(className, event.type, event.status);
+				
+				if (event.status && event.status.mediaInformation)
+				{
+					progressSlider.maximum = event.status.mediaInformation.streamDuration;
+					progressSlider.value = event.status.streamPosition;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="busy" />
+		<s:State name="list" />
+	</s:states>
+	
+	<s:BusyIndicator
+		includeIn="busy"
+		horizontalCenter="0"
+		verticalCenter="0"
+		/>
+	
+	<s:VGroup
+		includeIn="list"
+		width="100%" height="100%"
+		>
+		
+		<s:List 
+			id="mediaList"
+			width="100%" height="100%"
+			dataProvider="{media}"
+			change="mediaList_changeHandler(event)"
+			>
+			<s:itemRenderer>
+				<fx:Component>
+					<s:IconItemRenderer
+						iconHeight="45"
+						iconWidth="80"
+						iconField="thumb"
+						labelField="title"
+						messageField="studio"
+						/>
+				</fx:Component>
+			</s:itemRenderer>
+		</s:List>
+		
+		<s:VGroup
+			id="controlGroup"
+			width="100%"
+			>
+		
+			<s:HSlider
+				id="progressSlider"
+				width="100%"
+				minimum="0"
+				change="progressSlider_changeHandler(event)"
+				/>
+			
+		</s:VGroup>
+		
+	</s:VGroup>
+	
+</s:View>
