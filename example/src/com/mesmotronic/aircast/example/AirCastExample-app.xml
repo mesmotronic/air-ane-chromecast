@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <application xmlns="http://ns.adobe.com/air/application/16.0">
     
-	<id>com.mesmotronic.chromecast.example</id>
-	<filename>ChromecastExample</filename>
-	<name>Chromecast Example</name>
+	<id>com.mesmotronic.aircast.example</id>
+	<filename>AirCastExample</filename>
+	<name>AirCast Example</name>
 	<versionNumber>1.0.0</versionNumber>
 
 	<!-- <description></description> -->
@@ -270,8 +270,8 @@
         <requestedDisplayResolution>high</requestedDisplayResolution>
     </iPhone>
     
-<extensions>
-        <extensionID>com.ezper.ane.AirCast</extensionID>
-    <extensionID>com.mesmotronic.ane.aircast</extensionID>
+    <extensions>
+      <extensionID>com.mesmotronic.ane.aircast</extensionID>
     </extensions>
+    
 </application>
