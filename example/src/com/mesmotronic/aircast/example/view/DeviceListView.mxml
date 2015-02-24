@@ -13,7 +13,6 @@
 			import com.mesmotronic.ane.aircast.events.AirCastDeviceEvent;
 			import com.mesmotronic.ane.aircast.events.AirCastDeviceListEvent;
 			import com.mesmotronic.aircast.example.model.DeviceModel;
-			import com.mesmotronic.aircast.example.utils.AirCastLogger;
 			
 			import mx.events.FlexEvent;
 			
@@ -31,9 +30,8 @@
 					return;
 				}
 				
-				AirCast.logger = new AirCastLogger();
-				
-				airCast.init('CC1AD845'); // The default Chromecast app ID is CC1AD845
+				airCast.init();
+				airCast.logEnabled = true;
 				
 				DeviceModel.init();
 				
