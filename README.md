@@ -1,4 +1,17 @@
-ANE-chromecast
-==============
+AirCast: Chromecast ANE for Adobe AIR
+=====================================
 
-An ANE to unleash the power of the cast devices on AIR mobile apps
+iOS
+---
+
+Support for iOS is largely complete, but following the upgrade to the latest Google Cast SDK and addition of amd64 support, the following issues have appeared:
+
+* Intermittent _"Invalid data from [Chromecast name], ignoring"_ error during initial scan
+* Intermittent connection issues (sometimes, it just won't connect!) 
+
+Can you help?
+
+Android
+-------
+
+Coming soon... ish ;-)
