@@ -35,4 +35,18 @@ GCK_EXPORT
  */
 - (instancetype)initWithURL:(NSURL *)URL width:(NSInteger)width height:(NSInteger)height;
 
+/** @cond INTERNAL */
+
+/**
+ * Initalizes this GCKImage from its JSON representation.
+ */
+- (id)initWithJSONObject:(id)JSONObject;
+
+/**
+ * Create a JSON object which can serialized with NSJSONSerialization to pass to the receiver.
+ */
+- (id)JSONObject;
+
+/** @endcond */
+
 @end

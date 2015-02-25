@@ -27,5 +27,19 @@ GCK_EXPORT
 /** The sender app's launch URL. */
 @property(nonatomic, strong, readonly) NSURL *launchURL;
 
+/** @cond INTERNAL */
+
+/**
+ * Initalizes this GCKImage from its JSON representation.
+ */
+- (id)initWithJSONObject:(id)JSONObject;
+
+/**
+ * Create a JSON object which can serialized with NSJSONSerialization to pass to the receiver.
+ */
+- (id)JSONObject;
+
+/** @endcond */
+
 @end
 

@@ -366,4 +366,18 @@ GCK_EXPORT
  */
 - (NSString *)dateAsStringForKey:(NSString *)key;
 
+/** @cond INTERNAL */
+
+/**
+ * Initalizes this GCKImage from its JSON representation.
+ */
+- (id)initWithJSONObject:(id)JSONObject;
+
+/**
+ * Create a JSON object which can serialized with NSJSONSerialization to pass to the receiver.
+ */
+- (id)JSONObject;
+
+/** @endcond */
+
 @end
