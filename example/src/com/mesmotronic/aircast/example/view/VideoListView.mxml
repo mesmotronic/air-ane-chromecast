@@ -70,8 +70,8 @@
 				
 				if (event.status && event.status.mediaInformation)
 				{
-					progressSlider.maximum = event.status.mediaInformation.streamDuration;
-					progressSlider.value = event.status.streamPosition;
+//					progressSlider.maximum = event.status.mediaInformation.streamDuration;
+//					progressSlider.value = event.status.streamPosition;
 				}
 			}
 			
@@ -113,6 +113,7 @@
 			</s:itemRenderer>
 		</s:List>
 		
+		<!--
 		<s:VGroup
 			id="controlGroup"
 			width="100%"
@@ -126,6 +127,7 @@
 				/>
 			
 		</s:VGroup>
+		-->
 		
 	</s:VGroup>
 	

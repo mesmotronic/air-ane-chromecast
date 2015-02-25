@@ -36,8 +36,9 @@
 				DeviceModel.init();
 				
 				airCast.addEventListener(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceListChangedHandler);
-				airCast.addEventListener(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, didConnectToDeviceHandler);
-				airCast.scan();
+				airCast.addEventListener(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, connectHandler);
+				airCast.addEventListener(AirCastDeviceEvent.DID_DISCONNECT, connectHandler);
+//				airCast.scan();
 			}
 			
 			protected function deviceListChangedHandler(event:AirCastDeviceListEvent):void
@@ -59,13 +60,23 @@
 					
 					currentState = 'busy';
 					
-					airCast.stopScan();
+//					airCast.stopScan();
 					airCast.connectToDevice(device.deviceID);
 				}
 			}
 			
-			protected function didConnectToDeviceHandler(event:Event):void
+			protected function connectHandler(event:AirCastDeviceEvent):void
 			{
+				if (event.type == AirCastDeviceEvent.DID_DISCONNECT)
+				{
+					currentState = 'list';
+					return;
+				}
+				
+				airCast.removeEventListener(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceListChangedHandler);
+				airCast.removeEventListener(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, connectHandler);
+				airCast.removeEventListener(AirCastDeviceEvent.DID_DISCONNECT, connectHandler);
+				
 				navigator.replaceView(VideoListView);
 			}
 			
