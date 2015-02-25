@@ -7,7 +7,6 @@ import com.adobe.fre.FREExtension;
 
 public class AirCastExtension implements FREExtension
 {
-	
 	public static String TAG = "AirCast";
 	private static Boolean PRINT_LOG = true;
 	
@@ -27,12 +26,21 @@ public class AirCastExtension implements FREExtension
 	
 	public static void log(String message)
 	{
-		if (PRINT_LOG) Log.d(TAG, message);
-		if (context != null && message != null) context.dispatchStatusEventAsync("LOGGING", message);
+		if (PRINT_LOG) 
+		{
+			Log.d(TAG, message);
+		}
+		
+		if (context != null && message != null) 
+		{
+			context.dispatchStatusEventAsync("LOGGING", message);
+		}
 	}
 	
 	public static int getResourceId(String name)
 	{
-		return context != null ? context.getResourceId(name) : 0;
+		return context != null 
+			? context.getResourceId(name) 
+			: 0;
 	}
 }
