@@ -280,7 +280,7 @@ package com.mesmotronic.ane.aircast
 						jsonObject = JSON.parse(event.level);
 						
 						var status:AirCastMediaStatus = jsonObject.status != null 
-							? AirCastMediaStatus.fromJSONObject(jsonObject)
+							? AirCastMediaStatus.fromJSONObject(jsonObject.mediaStatus)
 							: null;
 						
 						dispatchEvent( new AirCastMediaEvent(AirCastMediaEvent.STATUS_CHANGED, status) );
