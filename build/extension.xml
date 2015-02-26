@@ -13,10 +13,9 @@
             </applicationDeployment>
         </platform>
 
-        <!-- 
         <platform name="Android-ARM"> 
             <applicationDeployment> 
-                <nativeLibrary>libAirCast.jar</nativeLibrary> 
+                <nativeLibrary>aircast-jar.jar</nativeLibrary> 
                 <initializer>com.mesmotronic.ane.aircast.AirCastExtension</initializer> 
                 <finalizer>com.mesmotronic.ane.aircast.AirCastExtension</finalizer> 
             </applicationDeployment> 
@@ -24,17 +23,16 @@
         
         <platform name="Android-x86"> 
             <applicationDeployment> 
-                <nativeLibrary>libAirCast.jar</nativeLibrary> 
+                <nativeLibrary>aircast-jar.jar</nativeLibrary> 
                 <initializer>com.mesmotronic.ane.aircast.AirCastExtension</initializer> 
                 <finalizer>com.mesmotronic.ane.aircast.AirCastExtension</finalizer> 
             </applicationDeployment> 
         </platform>
-        -->
         
         <platform name="default"> 
             <applicationDeployment/> 
         </platform>
-     
+    
     </platforms>
   
 </extension>
