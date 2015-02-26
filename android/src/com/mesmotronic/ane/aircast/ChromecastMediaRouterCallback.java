@@ -13,13 +13,15 @@ public class ChromecastMediaRouterCallback extends MediaRouter.Callback {
 	
 	public void registerCallbacks(AirCastExtensionContext instance) 
 	{
-		this.callback = instance;
+		callback = instance;
 	}
-
+	
 	public synchronized RouteInfo getRoute(String id)
 	{
-		for (RouteInfo i : this.routes) {
-			if (i.getId().equals(id)) {
+		for (RouteInfo i : this.routes) 
+		{
+			if (i.getId().equals(id)) 
+			{
 				return i;
 			}
 		}
@@ -41,9 +43,9 @@ public class ChromecastMediaRouterCallback extends MediaRouter.Callback {
 	{
 		routes.add(route);
 		
-		if (this.callback != null) 
+		if (callback != null) 
 		{
-			this.callback.onRouteAdded(router, route);
+			callback.onRouteAdded(router, route, null);
 		}
 	}
 	
@@ -52,27 +54,27 @@ public class ChromecastMediaRouterCallback extends MediaRouter.Callback {
 	{
 		routes.remove(route);
 		
-		if (this.callback != null) 
+		if (callback != null) 
 		{
-			this.callback.onRouteRemoved(router, route);
+			callback.onRouteRemoved(router, route);
 		}
 	}
 	
 	@Override
 	public void onRouteSelected(MediaRouter router, RouteInfo info) 
 	{
-		if (this.callback != null) 
+		if (callback != null) 
 		{
-			this.callback.onRouteSelected(router, info);
+			callback.onRouteSelected(router, info);
 		}
 	}
 	
 	@Override
 	public void onRouteUnselected(MediaRouter router, RouteInfo info) 
 	{
-		if (this.callback != null) 
+		if (callback != null) 
 		{
-			this.callback.onRouteUnselected(router, info);
+			callback.onRouteUnselected(router, info);
 		}
 	}
 }

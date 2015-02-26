@@ -23,23 +23,24 @@ import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.common.api.GoogleApiClient;
 
-public class AirCastExtensionContext extends FREContext
+public class AirCastExtensionContext 
+	extends FREContext 
+	implements ChromecastOnMediaUpdatedListener, ChromecastOnSessionUpdatedListener
 {
 	private static final String SETTINGS_NAME = "AirCastSettings";
 	
-	private String appId;
 	private MediaRouter mMediaRouter;
 	private MediaRouteSelector mMediaRouteSelector;
-	private Boolean isScanning;
-	private GoogleApiClient apiClient;
+	private volatile ChromecastMediaRouterCallback mMediaRouterCallback = new ChromecastMediaRouterCallback();
+	private String appId;
 	
-    private volatile ChromecastMediaRouterCallback mMediaRouterCallback = new ChromecastMediaRouterCallback();
-    private volatile ChromecastSession currentSession;
-    
-    private SharedPreferences settings;
-    private boolean autoConnect = false;
-    private String lastSessionId = null;
-    private String lastAppId = null;
+	private boolean autoConnect = false;
+	private String lastSessionId = null;
+	private String lastAppId = null;
+	
+	private SharedPreferences settings;
+	
+	private volatile ChromecastSession currentSession;
 	
 	final AirCastExtensionContext scope;
 	
@@ -48,17 +49,17 @@ public class AirCastExtensionContext extends FREContext
 		scope = this;
 	}
 	
-    private void setLastSessionId(String sessionId) 
-    {
-    	this.lastSessionId = sessionId;
-    	this.settings.edit().putString("lastSessionId", sessionId).apply();
-    }
+	private void setLastSessionId(String sessionId) 
+	{
+		this.lastSessionId = sessionId;
+		this.settings.edit().putString("lastSessionId", sessionId).apply();
+	}
 	
 	@Override
 	public void dispose()
 	{
 		AirCastExtension.context = null;
-		mMediaRouter.removeCallback(mediaRouteCallback);
+//		mMediaRouter.removeCallback(mediaRouteCallback);
 	}
 	
 	/**
@@ -71,83 +72,85 @@ public class AirCastExtensionContext extends FREContext
 		{
 			final Activity activity = getActivity();
 			
-	        settings = activity.getSharedPreferences(SETTINGS_NAME, 0);
-	        lastSessionId = settings.getString("lastSessionId", "");
-	        lastAppId = settings.getString("lastAppId", "");
-	        
+			settings = activity.getSharedPreferences(SETTINGS_NAME, 0);
+			lastSessionId = settings.getString("lastSessionId", "");
+			lastAppId = settings.getString("lastAppId", "");
+			
 			appId = getStringFromFREObject(args[0]);
-	        
+			
 			mMediaRouter = MediaRouter.getInstance(activity);
 			
 			mMediaRouteSelector = new MediaRouteSelector.Builder()
 				.addControlCategory(CastMediaControlIntent.categoryForCast(appId))
 				.build();
 			
-			isScanning = false;			
-			
-//	        log("initialize " + autoJoinPolicy + " " + appId + " " + lastAppId);
-//	        
-//	        if (autoJoinPolicy.equals("origin_scoped") && appId.equals(lastAppId)) 
-//	        {
-//	        	log("lastAppId " + lastAppId);
-//	        	autoConnect = true;
-//	        } 
+//			log("initialize " + autoJoinPolicy + " " + appId + " " + lastAppId);
+//			
+//			if (autoJoinPolicy.equals("origin_scoped") && appId.equals(lastAppId)) 
+//			{
+//				log("lastAppId " + lastAppId);
+//				autoConnect = true;
+//			} 
 //			else if (autoJoinPolicy.equals("origin_scoped")) 
-//	        {
-//	        	log("setting lastAppId " + lastAppId);
-//	        	settings.edit().putString("lastAppId", appId).apply();
-//	        }
-	        
-	        activity.runOnUiThread(new Runnable() 
-	        {
-	            public void run() 
-	            {
-	                mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
-	                mMediaRouteSelector = new MediaRouteSelector.Builder()
-		                .addControlCategory(CastMediaControlIntent.categoryForCast(appId))
-		                .build();
-	                
-	                mMediaRouterCallback.registerCallbacks(scope);
-	                mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback, MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
-	                
-	                callbackContext.success();
-	                
-	                Chromecast.checkReceiverAvailable();
-	                Chromecast.emitAllRoutes(null);
-	            }
-	        });
-	       
+//			{
+//				log("setting lastAppId " + lastAppId);
+//				settings.edit().putString("lastAppId", appId).apply();
+//			}
+			
+			activity.runOnUiThread(new Runnable() 
+			{
+				public void run() 
+				{
+					mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
+					mMediaRouteSelector = new MediaRouteSelector.Builder()
+						.addControlCategory(CastMediaControlIntent.categoryForCast(appId))
+						.build();
+					
+					mMediaRouterCallback.registerCallbacks(scope);
+					mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback, MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
+					
+					checkReceiverAvailable();
+					emitAllRoutes();
+				}
+			});
+		   
 			return null;
 		}
 	};
 	
+	/**
+	 * TODO Implement this!
+	 */
 	private BaseFunction scan = new BaseFunction() 
 	{
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
 		{
-			if (!isScanning)
-			{
-				mMediaRouter.addCallback(mMediaRouteSelector, mediaRouteCallback, MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
-			}
-			
-			isScanning = true;
+//			if (!isScanning)
+//			{
+//				mMediaRouter.addCallback(mMediaRouteSelector, mediaRouteCallback, MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
+//			}
+//			
+//			isScanning = true;
 			
 			return null;
 		}	
 	};
 	
+	/**
+	 * TODO Implement this!
+	 */
 	private BaseFunction stopScan = new BaseFunction() 
 	{
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
 		{
-			if (isScanning)
-			{
-				mMediaRouter.removeCallback(mediaRouteCallback);
-			}
-			
-			isScanning = false;
+//			if (isScanning)
+//			{
+//				mMediaRouter.removeCallback(mediaRouteCallback);
+//			}
+//			
+//			isScanning = false;
 			
 			return null;
 		}
@@ -159,44 +162,45 @@ public class AirCastExtensionContext extends FREContext
 	private BaseFunction connectToDevice = new BaseFunction() 
 	{
 		@Override 
-		public FREObject call(FREContext context, FREObject[] args) 
+		public FREObject call(final FREContext context, FREObject[] args) 
 		{
 			final String routeId = getStringFromFREObject(args[0]);
 			
 			RouteInfo route = null;
 			
-	    	if (currentSession != null)
-	    	{
-	    		callbackContext.success(currentSession.createSessionObject());
-	    		return null;
-	    	}
-	    	
-	    	setLastSessionId("");
-	    	
-	    	final Activity activity = getActivity();
-	    	
-	        activity.runOnUiThread(new Runnable()
-	        {
-	            public void run() 
-	            {
-	                mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
-	                final List<RouteInfo> routeList = mMediaRouter.getRoutes();
-	                
-	                for (RouteInfo route : routeList) 
-	                {
-	                	if (route.getId().equals(routeId)) 
-	                	{
-	                		createSession(route, callbackContext);
-	                		return;
-	                	}
-	                }
-	                
-	                callbackContext.error("No route found");
-	                
-	            }
-	        });
-	        
-	        return null;
+			if (currentSession != null)
+			{
+				JSONObject obj = currentSession.createSessionObject();
+				// TODO Convert obj to FREObject and return it?
+				return null;
+			}
+			
+			setLastSessionId("");
+			
+			final Activity activity = getActivity();
+			
+			activity.runOnUiThread(new Runnable()
+			{
+				public void run() 
+				{
+					mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
+					final List<RouteInfo> routeList = mMediaRouter.getRoutes();
+					
+					for (RouteInfo route : routeList) 
+					{
+						if (route.getId().equals(routeId)) 
+						{
+							createSession(route, context);
+							return;
+						}
+					}
+					
+					// TODO Return "No route found" error to AIR?
+					
+				}
+			});
+			
+			return null;
 		}		
 	};
 	
@@ -205,13 +209,13 @@ public class AirCastExtensionContext extends FREContext
 	 * @param routeInfo
 	 * @param callbackContext
 	 */
-    private void createSession(RouteInfo routeInfo, final CallbackContext callbackContext) 
-    {
-    	currentSession = new ChromecastSession(routeInfo, this.cordova, this, this);
-        
-        // Launch the app.
-        currentSession.launch(this.appId, new ChromecastSessionCallback() 
-        {
+	private void createSession(RouteInfo routeInfo, FREContext context) 
+	{
+		currentSession = new ChromecastSession(routeInfo, context, this, this);
+		
+		// Launch the app.
+		currentSession.launch(this.appId, new ChromecastSessionCallback() 
+		{
 			@Override
 			void onSuccess(Object object) 
 			{
@@ -225,14 +229,16 @@ public class AirCastExtensionContext extends FREContext
 				{
 					setLastSessionId(currentSession.getSessionId());
 					
-					if (callbackContext != null) 
-					{
-						callbackContext.success(session.createSessionObject());
-					}
-					else 
-					{
-						sendJavascript("chrome.cast._.sessionJoined(" + currentSession.createSessionObject().toString() + ");");
-					}
+					// TODO Somehow return data to AIR app
+					
+//					if (callbackContext != null) 
+//					{
+//						callbackContext.success(session.createSessionObject());
+//					}
+//					else 
+//					{
+//						sendJavascript("chrome.cast._.sessionJoined(" + currentSession.createSessionObject().toString() + ");");
+//					}
 				}
 			}
 
@@ -241,31 +247,24 @@ public class AirCastExtensionContext extends FREContext
 			{
 				if (reason != null) 
 				{
-					log("createSession onError " + reason);
-					
-					if (callbackContext != null) 
-					{
-						callbackContext.error(reason);
-					}
+					// log("createSession onError " + reason);
+					// TODO Somehow return error to AIR app
 				} 
 				else 
 				{
-					if (callbackContext != null) 
-					{
-						callbackContext.error("unknown");
-					}
+					// TODO Somehow return unknown error to AIR app
 				}
 			}
-        	
-        });
-    }
-    
-    private void joinSession(RouteInfo routeInfo) 
-    {
-    	ChromecastSession sessionJoinAttempt = new ChromecastSession(routeInfo, this.cordova, this, this);
-    	
-    	sessionJoinAttempt.join(this.appId, this.lastSessionId, new ChromecastSessionCallback() 
-    	{
+			
+		});
+	}
+	
+	private void joinSession(RouteInfo routeInfo, FREContext context) 
+	{
+		ChromecastSession sessionJoinAttempt = new ChromecastSession(routeInfo, context, this, this);
+		
+		sessionJoinAttempt.join(this.appId, this.lastSessionId, new ChromecastSessionCallback() 
+		{
 			@Override
 			void onSuccess(Object object) 
 			{
@@ -273,8 +272,8 @@ public class AirCastExtensionContext extends FREContext
 				{
 					try 
 					{
-						Chromecast.this.currentSession = (ChromecastSession) object;
-						Chromecast.this.setLastSessionId(Chromecast.this.currentSession.getSessionId());
+						currentSession = (ChromecastSession) object;
+						setLastSessionId(currentSession.getSessionId());
 						sendJavascript("chrome.cast._.sessionJoined(" + currentSession.createSessionObject().toString() + ");");
 					} 
 					catch (Exception e) 
@@ -287,15 +286,15 @@ public class AirCastExtensionContext extends FREContext
 			@Override
 			void onError(String reason) 
 			{
-				log("sessionJoinAttempt error " +reason);
+//				log("sessionJoinAttempt error " +reason);
 			}
-    		
-    	});
-    }
+			
+		});
+	}
 	
-    /**
-     * Disconnect from Chromecast device
-     */
+	/**
+	 * Disconnect from Chromecast device
+	 */
 	private BaseFunction disconnectFromDevice = new BaseFunction() 
 	{
 		@Override 
@@ -314,51 +313,53 @@ public class AirCastExtensionContext extends FREContext
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
 		{
-	    	if (currentSession != null) 
-	    	{
+			if (currentSession != null) 
+			{
 				// url, thumbnailURL, title, desc, mimeType, startTime, autoPlay;
 				
-				String contentId = args[0].getAsString();
-				String contentType = args[4].getAsString();
+				String contentId = getStringFromFREObject(args[0]);
+				String contentType = getStringFromFREObject(args[4]);
 				Long duration = MediaInfo.UNKNOWN_DURATION;
 				String streamType = ""; // TODO Make this auto detect?
-				Boolean autoPlay = args[6].getAsBool();
-				Double currentTime = args[5].getAsDouble(); 
+				Boolean autoPlay = getBooleanFromFREObject(args[6]);
+				Double currentTime = getDoubleFromFREObject(args[5]); 
 				
 				Map<String, String> matadataMap = new HashMap<String, String>();
-				matadataMap.put("title", args[2].getAsString());
-				matadataMap.put("subtitle", args[3].getAsString());
-				matadataMap.put("thumbnail", args[1].getAsString());
+				matadataMap.put("title", getStringFromFREObject(args[2]));
+				matadataMap.put("subtitle", getStringFromFREObject(args[3]));
+				matadataMap.put("thumbnail", getStringFromFREObject(args[1]));
 				
 				JSONObject metadata = new JSONObject(matadataMap);
 				
-	    		Boolean success = currentSession.loadMedia(contentId, contentType, duration, streamType, autoPlay, currentTime, metadata, new ChromecastSessionCallback() 
-	    		{
-					@Override
-					void onSuccess(Object object) 
-					{
-						if (object == null) 
-						{
-							onError("unknown");
-						}
-						else 
-						{
-							callbackContext.success((JSONObject) object);
-						}
-					}
-
-					@Override
-					void onError(String reason)
-					{
-						callbackContext.error(reason);
-					}
-	    		});
-	    	}
-	    	else 
-	    	{
-	    		callbackContext.error("session_error");
-	    	}
-	    	
+				Boolean success = currentSession.loadMedia(contentId, contentType, duration, streamType, autoPlay, currentTime, metadata);
+				
+//				, new ChromecastSessionCallback() 
+//				{
+//					@Override
+//					void onSuccess(Object object) 
+//					{
+//						if (object == null) 
+//						{
+//							onError("unknown");
+//						}
+//						else 
+//						{
+//							// TODO Update media status in AIR
+//						}
+//					}
+//
+//					@Override
+//					void onError(String reason)
+//					{
+//						// TODO Error event to AIR
+//					}
+//				});
+			}
+			else 
+			{
+				// TODO Error event to AIR; "session_error"
+			}
+			
 			return null;
 		}		
 	};
@@ -394,8 +395,8 @@ public class AirCastExtensionContext extends FREContext
 		}
 	};
 	
-    /**
-     * Play on the current media in the current session
+	/**
+	 * Play on the current media in the current session
 	 */
 	private BaseFunction playCast = new BaseFunction()
 	{ 
@@ -404,16 +405,16 @@ public class AirCastExtensionContext extends FREContext
 		{
 			if (currentSession != null) 
 			{
-	    		currentSession.mediaPlay(genericCallback(callbackContext));
-	    	}
+				currentSession.mediaPlay();
+			}
 			
 			return null;
 		}
 	};
 	
-    /**
-     * Pause on the current media in the current session
-     */
+	/**
+	 * Pause on the current media in the current session
+	 */
 	private BaseFunction pauseCast = new BaseFunction() 
 	{ 
 		@Override 
@@ -421,8 +422,8 @@ public class AirCastExtensionContext extends FREContext
 		{
 			if (currentSession != null) 
 			{
-	    		currentSession.mediaPause(genericCallback(callbackContext));
-	    	}
+				currentSession.mediaPause();
+			}
 			
 			return null;
 		}		
@@ -440,22 +441,22 @@ public class AirCastExtensionContext extends FREContext
 		}		
 	};
 	
-    /**
-     * Seeks the current media in the current session
-     */
+	/**
+	 * Seeks the current media in the current session
+	 */
 	private BaseFunction seek = new BaseFunction()
 	{ 
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
 		{
-	    	if (currentSession != null) 
-	    	{
-	    		Double seekTime = args[0].getAsDouble(); 
-	    		String resumeState = "";
-	    		
-	    		currentSession.mediaSeek(seekTime.longValue() * 1000, resumeState, genericCallback(callbackContext));
-	    	}
-	    	
+			if (currentSession != null) 
+			{
+				Double seekTime = getDoubleFromFREObject(args[0]); 
+				String resumeState = "";
+				
+				currentSession.mediaSeek(seekTime.longValue() * 1000, resumeState);
+			}
+			
 			return null;
 		}
 	};
@@ -467,11 +468,11 @@ public class AirCastExtensionContext extends FREContext
 	{ 
 		@Override public FREObject call(FREContext context, FREObject[] args) 
 		{
-	    	if (currentSession != null) 
-	    	{
-	    		currentSession.mediaStop(genericCallback(callbackContext));
-	    	}
-	    	
+			if (currentSession != null) 
+			{
+				currentSession.mediaStop();
+			}
+			
 			return null;
 		}
 	};
@@ -483,10 +484,10 @@ public class AirCastExtensionContext extends FREContext
 	{ 
 		@Override public FREObject call(FREContext context, FREObject[] args) 
 		{
-	    	if (currentSession != null) 
-	    	{
-	        	currentSession.setVolume(args[0].getAsDouble(), genericCallback(callbackContext));
-	        } 
+			if (currentSession != null) 
+			{
+				currentSession.setVolume(getDoubleFromFREObject(args[0]));
+			} 
 			
 			return null;
 		}
@@ -502,8 +503,8 @@ public class AirCastExtensionContext extends FREContext
 			if (currentSession != null) 
 			{
 				Boolean muted = getBooleanFromFREObject(args[0]);
-	    		currentSession.mediaSetMuted(muted, genericCallback(callbackContext));
-	    	}
+				currentSession.mediaSetMuted(muted);
+			}
 			
 			return null;
 		}
@@ -520,31 +521,31 @@ public class AirCastExtensionContext extends FREContext
 			String namespace = getStringFromFREObject(args[0]);
 			String message = getStringFromFREObject(args[1]);
 			
-	        if (currentSession != null) 
-	        {
-	        	currentSession.sendMessage(namespace, message, new ChromecastSessionCallback() 
-	        	{
+			if (currentSession != null) 
+			{
+				currentSession.sendMessage(namespace, message, new ChromecastSessionCallback() 
+				{
 					@Override
 					void onSuccess(Object object) 
 					{
-						callbackContext.success();
+						// TODO Success event in AIR
 					}
 					
 					@Override
 					void onError(String reason) 
 					{
-						callbackContext.error(reason);					
+						// TODO Error event in AIR
 					}
-	        	});
-	        }
+				});
+			}
 			
 			return null;
 		}
 	};
 	
-    /**
-     * Adds a listener to a specific namespace
-     */
+	/**
+	 * Adds a listener to a specific namespace
+	 */
 	private BaseFunction addMessageListener = new BaseFunction() 
 	{ 
 		@Override 
@@ -552,172 +553,167 @@ public class AirCastExtensionContext extends FREContext
 		{
 			String namespace = getStringFromFREObject(args[0]);
 			
-	        if (currentSession != null) 
-	        {
-	        	currentSession.addMessageListener(namespace);
-//	    		callbackContext.success();
-	        }
-	        
+			if (currentSession != null) 
+			{
+				currentSession.addMessageListener(namespace);
+			}
+			
 			return null;
 		}
 	};
 	
 	// INTERNAL
-    
-    /**
-     * Stops the session
-     * @param callbackContext
-     * @return
-     */
-    public boolean sessionStop(CallbackContext callbackContext)
-    {
-    	if (this.currentSession != null) 
-    	{
-    		this.currentSession.kill(genericCallback(callbackContext));
-    		this.currentSession = null;
-    		this.setLastSessionId("");
-    	}
-    	
-    	return true;
-    }
-
-    /**
-     * Stops the session
-     * @param callbackContext
-     * @return
-     */
-    public boolean sessionLeave(CallbackContext callbackContext) 
-    {
-        if (this.currentSession != null) 
-        {
-            this.currentSession.leave(genericCallback(callbackContext));
-            this.currentSession = null;
-            this.setLastSessionId("");
-        }
-        else 
-        {
-            callbackContext.success();
-        }
-        
-        return true;
-    }
-
-    public boolean emitAllRoutes(CallbackContext callbackContext) 
-    {
-    	final Activity activity = getActivity();
-    	
-        activity.runOnUiThread(new Runnable() 
-        {
-            public void run() 
-            {
-                mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
-                List<RouteInfo> routeList = mMediaRouter.getRoutes();
-                
-                for (RouteInfo route : routeList) 
-                {
-                	if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
-                	{
-	        			sendJavascript("chrome.cast._.routeAdded(" + routeToJSON(route) + ")");
-	        		}
-                }
-            }
-        });
-        
-        if (callbackContext != null) {
-        	callbackContext.success();
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Checks to see how many receivers are available - emits the receiver status down to Javascript
-     */
-    private void checkReceiverAvailable() 
-    {
-    	final Activity activity = getActivity();
-    	
-        activity.runOnUiThread(new Runnable() 
-        {
-            public void run() 
-            {
-                mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
-                List<RouteInfo> routeList = mMediaRouter.getRoutes();
-                boolean available = false;
-                
-                for (RouteInfo route: routeList) 
-                {
-                	if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
-                	{
-                		available = true;
-                		break;
-                	}
-                }
-                
-                if (available || (currentSession != null && currentSession.isConnected())) 
-                {
-                	sendJavascript("chrome.cast._.receiverAvailable()");
-                }
-                else 
-                {
-                	sendJavascript("chrome.cast._.receiverUnavailable()");
-                }
-            }
-        });
-    }
 	
-    /**
-     * Creates a ChromecastSessionCallback that's generic for a CallbackContext 
-     * @param callbackContext
-     * @return
-     */
-    private ChromecastSessionCallback genericCallback (final CallbackContext callbackContext) 
-    {
-    	return new ChromecastSessionCallback() {
+	/**
+	 * Stops the session
+	 * @param callbackContext
+	 * @return
+	 */
+	public boolean sessionStop()
+	{
+		if (this.currentSession != null) 
+		{
+			this.currentSession.kill();
+			this.currentSession = null;
+			this.setLastSessionId("");
+		}
+		
+		return true;
+	}
 
-			@Override
-			public void onSuccess(Object object) {
-				callbackContext.success();
-			}
-
-			@Override
-			public void onError(String reason) {
-				callbackContext.error(reason);
-			}
-    		
-    	};
-    };
+	/**
+	 * Stops the session
+	 * @param callbackContext
+	 * @return
+	 */
+	public boolean sessionLeave() 
+	{
+		if (this.currentSession != null) 
+		{
+			this.currentSession.leave();
+			this.currentSession = null;
+			this.setLastSessionId("");
+		}
+		else 
+		{
+//			callbackContext.success();
+		}
+		
+		return true;
+	}
 	
-    /**
-     * Called when a route is discovered
-     * @param router
-     * @param route
-     */
-    protected void onRouteAdded(MediaRouter router, final RouteInfo route) 
-    {
-    	if (this.autoConnect && this.currentSession == null && !route.getName().equals("Phone")) 
-    	{
-    		log("Attempting to join route " + route.getName());
-    		this.joinSession(route);
-    	}
-    	else 
-    	{
-    		log("For some reason, not attempting to join route " + route.getName() + ", " + this.currentSession + ", " + this.autoConnect);
-    	}
-    	
-    	if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
-    	{
+	/**
+	 * Checks to see how many receivers are available - emits the receiver status down to Javascript
+	 */
+	private void checkReceiverAvailable() 
+	{
+		final Activity activity = getActivity();
+		
+		activity.runOnUiThread(new Runnable() 
+		{
+			public void run() 
+			{
+				mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
+				List<RouteInfo> routeList = mMediaRouter.getRoutes();
+				boolean available = false;
+				
+				for (RouteInfo route: routeList) 
+				{
+					if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
+					{
+						available = true;
+						break;
+					}
+				}
+				
+				if (available || (currentSession != null && currentSession.isConnected())) 
+				{
+					sendJavascript("chrome.cast._.receiverAvailable()");
+				}
+				else 
+				{
+					sendJavascript("chrome.cast._.receiverUnavailable()");
+				}
+			}
+		});
+	}
+	
+	public boolean emitAllRoutes() 
+	{
+		final Activity activity = getActivity();
+		
+		activity.runOnUiThread(new Runnable() 
+		{
+			public void run() 
+			{
+				mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
+				List<RouteInfo> routeList = mMediaRouter.getRoutes();
+				
+				for (RouteInfo route : routeList) 
+				{
+					if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
+					{
+						sendJavascript("chrome.cast._.routeAdded(" + routeToJSON(route) + ")");
+					}
+				}
+			}
+		});
+		
+		return true;
+	}
+	
+	/**
+	 * Creates a ChromecastSessionCallback that's generic for a CallbackContext 
+	 * @param callbackContext
+	 * @return
+	 */
+//	private ChromecastSessionCallback genericCallback (final CallbackContext callbackContext) 
+//	{
+//		return new ChromecastSessionCallback() {
+//
+//			@Override
+//			public void onSuccess(Object object) {
+//				callbackContext.success();
+//			}
+//
+//			@Override
+//			public void onError(String reason) {
+//				callbackContext.error(reason);
+//			}
+//			
+//		};
+//	};
+	
+	/**
+	 * Called when a route is discovered
+	 * @param router
+	 * @param route
+	 */
+	protected void onRouteAdded(MediaRouter router, final RouteInfo route, FREContext context) 
+	{
+		if (this.autoConnect && this.currentSession == null && !route.getName().equals("Phone")) 
+		{
+			log("Attempting to join route " + route.getName());
+			this.joinSession(route, context);
+		}
+		else 
+		{
+			log("For some reason, not attempting to join route " + route.getName() + ", " + this.currentSession + ", " + this.autoConnect);
+		}
+		
+		if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
+		{
 			sendJavascript("chrome.cast._.routeAdded(" + routeToJSON(route) + ")");
 		}
-    	
-    	checkReceiverAvailable();
-    }
+		
+		checkReceiverAvailable();
+	}
 
-    /**
-     * Called when a discovered route is lost
-     * @param router
-     * @param route
-     */
+	/**
+	 * Called when a discovered route is lost
+	 * @param router
+	 * @param route
+	 */
 	protected void onRouteRemoved(MediaRouter router, RouteInfo route)
 	{
 		checkReceiverAvailable();
@@ -763,10 +759,10 @@ public class AirCastExtensionContext extends FREContext
 				.builder(route, castClientListener);
 			
 			apiClient = new GoogleApiClient.Builder(this)
-                .addApi(Cast.API, apiOptionsBuilder.build())
-                .addConnectionCallbacks(mConnectionCallbacks)
-                .addOnConnectionFailedListener(mConnectionFailedListener)
-                .build();
+				.addApi(Cast.API, apiOptionsBuilder.build())
+				.addConnectionCallbacks(mConnectionCallbacks)
+				.addOnConnectionFailedListener(mConnectionFailedListener)
+				.build();
 		}
 		
 		@Override
@@ -848,18 +844,18 @@ public class AirCastExtensionContext extends FREContext
 		return obj;
 	}
 	
-    @Override
-    public void onMediaUpdated(boolean isAlive, JSONObject media) 
-    {
-        if (isAlive) 
-        {
-            sendJavascript("chrome.cast._.mediaUpdated(true, " + media.toString() +");");
-        } 
-        else 
-        {
-            sendJavascript("chrome.cast._.mediaUpdated(false, " + media.toString() +");");
-        }
-    }
+	@Override
+	public void onMediaUpdated(boolean isAlive, JSONObject media) 
+	{
+		if (isAlive) 
+		{
+			sendJavascript("chrome.cast._.mediaUpdated(true, " + media.toString() +");");
+		} 
+		else 
+		{
+			sendJavascript("chrome.cast._.mediaUpdated(false, " + media.toString() +");");
+		}
+	}
 
 	@Override
 	public void onSessionUpdated(boolean isAlive, JSONObject session) 
@@ -888,34 +884,33 @@ public class AirCastExtensionContext extends FREContext
 		sendJavascript("chrome.cast._.onMessage('" + session.getSessionId() +"', '" + namespace + "', '" + message  + "')");
 	}
 
-    //Change all @deprecated this.webView.sendJavascript(String) to this local function sendJavascript(String)
-    @TargetApi(Build.VERSION_CODES.KITKAT)
-    private void sendJavascript(final String javascript) 
-    {
-
-        webView.post(new Runnable() 
-        {
-            @Override
-            public void run() 
-            {
-                // See: https://github.com/GoogleChrome/chromium-webview-samples/blob/master/jsinterface-example/app/src/main/java/jsinterfacesample/android/chrome/google/com/jsinterface_example/MainFragment.java
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) 
-                {
-                    webView.evaluateJavascript(javascript, null);
-                }
-                else 
-                {
-                    webView.loadUrl("javascript:" + javascript);
-                }
-            }
-        });
-    }
+	private void sendJavascript(final String javascript) 
+	{
+		// TODO Replace this with a function that calls AIR events
+		
+//		webView.post(new Runnable() 
+//		{
+//			@Override
+//			public void run() 
+//			{
+//				// See: https://github.com/GoogleChrome/chromium-webview-samples/blob/master/jsinterface-example/app/src/main/java/jsinterfacesample/android/chrome/google/com/jsinterface_example/MainFragment.java
+//				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) 
+//				{
+//					webView.evaluateJavascript(javascript, null);
+//				}
+//				else 
+//				{
+//					webView.loadUrl("javascript:" + javascript);
+//				}
+//			}
+//		});
+	}
 	
-    private void log(String s) 
-    {
-    	sendJavascript("console.log('" + s + "');");
-    }
-    
+	private void log(String s) 
+	{
+		sendJavascript("console.log('" + s + "');");
+	}
+	
 	@Override
 	public Map<String, FREFunction> getFunctions()
 	{

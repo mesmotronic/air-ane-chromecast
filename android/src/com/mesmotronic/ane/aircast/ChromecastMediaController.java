@@ -9,12 +9,10 @@ import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.images.WebImage;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.net.Uri;
-import android.util.Log;
 
 public class ChromecastMediaController 
 {
@@ -40,8 +38,8 @@ public class ChromecastMediaController
 			if (metadataType == MediaMetadata.MEDIA_TYPE_GENERIC) 
 			{
 				mediaMetadata = new MediaMetadata(); // Creates GENERIC MediaMetaData
-				mediaMetadata.putString(MediaMetadata.KEY_TITLE, (metadata.has("title")) ? metadata.getString("title") : "[Title not set]" ); // TODO: What should it default to?
-				mediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, (metadata.has("title")) ? metadata.getString("subtitle") : "[Subtitle not set]" ); // TODO: What should it default to?
+				mediaMetadata.putString(MediaMetadata.KEY_TITLE, (metadata.has("title")) ? metadata.getString("title") : "");
+				mediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, (metadata.has("title")) ? metadata.getString("subtitle") : "");
 				mediaMetadata = addImages(metadata, mediaMetadata);
 			}
 			
@@ -74,25 +72,25 @@ public class ChromecastMediaController
     	return mediaInfo;
 	}
 	
-	public void play(GoogleApiClient apiClient, ChromecastSessionCallback callback) 
+	public void play(GoogleApiClient apiClient) 
 	{
 		PendingResult<MediaChannelResult> res = this.remote.play(apiClient);
-		res.setResultCallback(this.createMediaCallback(callback));
+//		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void pause(GoogleApiClient apiClient, ChromecastSessionCallback callback) 
+	public void pause(GoogleApiClient apiClient) 
 	{
 		PendingResult<MediaChannelResult> res = this.remote.pause(apiClient);
-		res.setResultCallback(this.createMediaCallback(callback));
+//		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void stop(GoogleApiClient apiClient, ChromecastSessionCallback callback)
+	public void stop(GoogleApiClient apiClient)
 	{
 		PendingResult<MediaChannelResult> res = this.remote.stop(apiClient);
-		res.setResultCallback(this.createMediaCallback(callback));
+//		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void seek(long seekPosition, String resumeState, GoogleApiClient apiClient, final ChromecastSessionCallback callback) 
+	public void seek(long seekPosition, String resumeState, GoogleApiClient apiClient) 
 	{
 		PendingResult<MediaChannelResult> res = null;
 		
@@ -117,22 +115,22 @@ public class ChromecastMediaController
 			res = this.remote.seek(apiClient, seekPosition);
 		}
 		
-		res.setResultCallback(this.createMediaCallback(callback));
+//		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void setVolume(double volume, GoogleApiClient apiClient, final ChromecastSessionCallback callback) 
+	public void setVolume(double volume, GoogleApiClient apiClient) 
 	{
 		PendingResult<MediaChannelResult> res = this.remote.setStreamVolume(apiClient, volume);
-		res.setResultCallback(this.createMediaCallback(callback));
+//		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void setMuted(boolean muted, GoogleApiClient apiClient, final ChromecastSessionCallback callback) 
+	public void setMuted(boolean muted, GoogleApiClient apiClient) 
 	{
 		PendingResult<MediaChannelResult> res = this.remote.setStreamMute(apiClient, muted);
-		res.setResultCallback(this.createMediaCallback(callback));
+//		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	private ResultCallback<RemoteMediaPlayer.MediaChannelResult> createMediaCallback(final ChromecastSessionCallback callback)
+	private ResultCallback<RemoteMediaPlayer.MediaChannelResult> createMediaCallback()
 	{
 		return new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() 
 		{
@@ -141,11 +139,11 @@ public class ChromecastMediaController
 		    {
 				if (result.getStatus().isSuccess()) 
 				{
-					callback.onSuccess();
+//					callback.onSuccess();
 				}
 				else 
 				{
-					callback.onError("channel_error");
+//					callback.onError("channel_error");
 				}
 		    }
 		};

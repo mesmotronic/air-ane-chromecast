@@ -28,7 +28,7 @@ public class BaseFunction implements FREFunction
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			return null;
+			return "";
 		}
 	}
 	
@@ -42,6 +42,19 @@ public class BaseFunction implements FREFunction
 		{
 			e.printStackTrace();
 			return false;
+		}
+	}
+	
+	protected Double getDoubleFromFREObject(FREObject object)
+	{
+		try
+		{
+			return object.getAsDouble();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			return 0.0;
 		}
 	}
 	
