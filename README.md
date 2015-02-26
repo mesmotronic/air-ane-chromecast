@@ -1,7 +1,7 @@
 AirCast: Chromecast ANE for Adobe AIR
 =====================================
 
-A native extension for Adobe AIR that enables you to cast audio and video content to a Chromecast device from Android and iOS.
+A native extension for Adobe AIR that enables you to cast audio and video content to Chromecast devices from Android and iOS apps.
 
 Requires Adobe AIR 16+. 
 
