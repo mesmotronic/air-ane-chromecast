@@ -16,18 +16,20 @@ package com.mesmotronic.ane.aircast
 		
 		private static var _instance:AirCast;
 		
-		/** 
-		 * At first we only support iOS, will implement Android support when google does release the cast SDK
-		 */
 		public static function get isSupported():Boolean
 		{
 			return Capabilities.manufacturer.indexOf("iOS") > -1
-				/*|| Capabilities.manufacturer.indexOf("Android") > -1*/;
+				|| Capabilities.manufacturer.indexOf("Android") > -1;
 		}
 		
 		public static function get instance():AirCast
 		{
-			return _instance ? _instance : new AirCast();
+			if (!_instance)
+			{
+				_instance = new AirCast();
+			}
+			
+			return _instance;
 		}
 		
 		public var logEnabled:Boolean = false;
@@ -52,10 +54,10 @@ package com.mesmotronic.ane.aircast
 			}
 			else
 			{
-				throw Error("This is a singleton, use getInstance(), do not call the constructor directly.");
+				throw Error("This is a singleton, do not call the constructor directly.");
 			}
 		}
-
+		
 		public function get connectedDevice():AirCastDevice 
 		{
 			return this._connectedDevice; 
@@ -214,26 +216,36 @@ package com.mesmotronic.ane.aircast
 			_context.call('sendCustomEvent', message, protocol);
 		}
 
-		// ------------------------------
-		// Events
+		/**
+		 * Events
+		 */
 		private function onStatus(event:StatusEvent):void
 		{
-			var today:Date = new Date();
+			var now:Date = new Date();
 			var callback:Function;
 			
 			switch (event.code)
 			{
 				case "AirCast.deviceListChanged":
 				{
-					log( "received deviceListChanged" );
+					log("received deviceListChanged");
+					
 					var deviceList:Vector.<AirCastDevice> = new Vector.<AirCastDevice>();
-					try{
+					
+					try
+					{
 						var jsonObject:Object = JSON.parse(event.level);
+						
 						for each( var deviceJsonObject:Object in (jsonObject as Array))
+						{
 							deviceList.push(AirCastDevice.fromJSONObject(deviceJsonObject));
-					} catch (e:*) {
+						}
+					}
+					catch (e:*) 
+					{
 						log(e.toString());
 					}
+					
 					dispatchEvent( new AirCastDeviceListEvent(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceList) );
 					break;
 				}
@@ -245,9 +257,11 @@ package com.mesmotronic.ane.aircast
 					try
 					{
 						jsonObject = JSON.parse(event.level);
+						
 						var device:AirCastDevice = AirCastDevice.fromJSONObject(jsonObject);
 						this._connectedDevice = device;
-						dispatchEvent( new AirCastDeviceEvent(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, device) );
+						
+						dispatchEvent(new AirCastDeviceEvent(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, device));
 					}
 					catch (e:*) 
 					{

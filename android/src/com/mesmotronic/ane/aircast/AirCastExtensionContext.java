@@ -18,10 +18,8 @@ import com.adobe.fre.FREContext;
 import com.adobe.fre.FREFunction;
 import com.adobe.fre.FREObject;
 import com.adobe.fre.FREWrongThreadException;
-import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.common.api.GoogleApiClient;
 
 public class AirCastExtensionContext 
 	extends FREContext 
@@ -212,7 +210,7 @@ public class AirCastExtensionContext
 		currentSession = new ChromecastSession(routeInfo, context, this, this);
 		
 		// Launch the app.
-		currentSession.launch(this.appId, new ChromecastSessionCallback() 
+		currentSession.launch(appId, new ChromecastSessionCallback() 
 		{
 			@Override
 			void onSuccess(Object object) 
@@ -592,10 +590,6 @@ public class AirCastExtensionContext
 			this.currentSession = null;
 			this.setLastSessionId("");
 		}
-		else 
-		{
-//			callbackContext.success();
-		}
 		
 		return true;
 	}
@@ -821,7 +815,7 @@ public class AirCastExtensionContext
 	*/
 	
 	/**
-	 * Simple helper to convert a route to JSON for passing down to the javascript side
+	 * Simple helper to convert a route to JSON for passing down to the AIR side
 	 * @param route
 	 * @return
 	 */
