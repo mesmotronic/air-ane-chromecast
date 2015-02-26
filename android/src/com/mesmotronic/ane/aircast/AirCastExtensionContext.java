@@ -166,8 +166,6 @@ public class AirCastExtensionContext
 		{
 			final String routeId = getStringFromFREObject(args[0]);
 			
-			RouteInfo route = null;
-			
 			if (currentSession != null)
 			{
 				JSONObject obj = currentSession.createSessionObject();
