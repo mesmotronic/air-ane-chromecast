@@ -37,21 +37,26 @@ package com.mesmotronic.ane.aircast{
 
 		public static function fromJSONObject(jsonObject:Object):AirCastDevice
 		{
-			
 			var icons:Vector.<AirCastImage> = new Vector.<AirCastImage>();
+			
 			if (jsonObject.icons!=null)
+			{
 				for each (var iconJsonObject:Object in (jsonObject.icons as Array))
+				{
 					icons.push(AirCastImage.fromJSONObject(iconJsonObject));
-
-			return new AirCastDevice(
-					jsonObject.ipAddress,
-					jsonObject.servicePort,
-					jsonObject.deviceID,
-					jsonObject.friendlyName,
-					jsonObject.manufacturer,
-					jsonObject.modelName,
-					icons
-				);
+				}
+			}
+			
+			return new AirCastDevice
+			(
+				jsonObject.ipAddress,
+				jsonObject.servicePort,
+				jsonObject.deviceID,
+				jsonObject.friendlyName,
+				jsonObject.manufacturer,
+				jsonObject.modelName,
+				icons
+			);
 
 		}
 

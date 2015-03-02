@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -11,7 +12,6 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.support.v7.media.MediaRouteSelector;
 import android.support.v7.media.MediaRouter;
-import android.support.v7.media.MediaRouter.Callback;
 import android.support.v7.media.MediaRouter.RouteInfo;
 
 import com.adobe.fre.FREContext;
@@ -27,11 +27,19 @@ public class AirCastExtensionContext
 {
 	private static final String SETTINGS_NAME = "AirCastSettings";
 	
+	private static final String EVENT_DEVICE_LIST_CHANGED = "AirCast.deviceListChanged";
+	private static final String EVENT_CONNECT_TO_DEVICE = "AirCast.didConnectToDevice";
+	private static final String EVENT_DISCONNECTED = "AirCast.didDisconnect";
+	private static final String EVENT_RECEIVED_MEDIA_STATE_CHANGE = "AirCast.didReceiveMediaStateChange";
+	private static final String EVENT_RECEIVED_CUSTOM_EVENT = "AirCast.didReceiveCustomEvent";
+	private static final String EVENT_LOGGING = "LOGGING";
+	
 	private MediaRouter mMediaRouter;
 	private MediaRouteSelector mMediaRouteSelector;
 	private volatile ChromecastMediaRouterCallback mMediaRouterCallback = new ChromecastMediaRouterCallback();
 	private String appId;
 	
+	private boolean isScanning = false;
 	private boolean autoConnect = false;
 	private String lastSessionId = null;
 	private String lastAppId = null;
@@ -40,25 +48,11 @@ public class AirCastExtensionContext
 	
 	private volatile ChromecastSession currentSession;
 	
-	final AirCastExtensionContext scope;
+	public AirCastExtensionContext() {}
 	
-	public AirCastExtensionContext()
-	{
-		scope = this;
-	}
-	
-	private void setLastSessionId(String sessionId) 
-	{
-		this.lastSessionId = sessionId;
-		this.settings.edit().putString("lastSessionId", sessionId).apply();
-	}
-	
-	@Override
-	public void dispose()
-	{
-		AirCastExtension.context = null;
-//		mMediaRouter.removeCallback(mediaRouteCallback);
-	}
+	/*
+	 * NATIVE EXTENSION API
+	 */
 	
 	/**
 	 * Initialize the ANE
@@ -66,7 +60,7 @@ public class AirCastExtensionContext
 	private BaseFunction initNE = new BaseFunction()
 	{
 		@Override 
-		public FREObject call(FREContext context, FREObject[] args) 
+		public FREObject call(final FREContext context, FREObject[] args) 
 		{
 			final Activity activity = getActivity();
 			
@@ -82,18 +76,7 @@ public class AirCastExtensionContext
 				.addControlCategory(CastMediaControlIntent.categoryForCast(appId))
 				.build();
 			
-//			log("initialize " + autoJoinPolicy + " " + appId + " " + lastAppId);
-//			
-//			if (autoJoinPolicy.equals("origin_scoped") && appId.equals(lastAppId)) 
-//			{
-//				log("lastAppId " + lastAppId);
-//				autoConnect = true;
-//			} 
-//			else if (autoJoinPolicy.equals("origin_scoped")) 
-//			{
-//				log("setting lastAppId " + lastAppId);
-//				settings.edit().putString("lastAppId", appId).apply();
-//			}
+			log("initialize AirCast with app ID "+appId);
 			
 			activity.runOnUiThread(new Runnable() 
 			{
@@ -104,14 +87,15 @@ public class AirCastExtensionContext
 						.addControlCategory(CastMediaControlIntent.categoryForCast(appId))
 						.build();
 					
-					mMediaRouterCallback.registerCallbacks(scope);
+					mMediaRouterCallback.registerCallbacks(AirCastExtensionContext.this);
 					mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback, MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
 					
-					checkReceiverAvailable();
+					isScanning = true;
+					
 					emitAllRoutes();
 				}
 			});
-		   
+			
 			return null;
 		}
 	};
@@ -124,12 +108,14 @@ public class AirCastExtensionContext
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
 		{
-//			if (!isScanning)
-//			{
-//				mMediaRouter.addCallback(mMediaRouteSelector, mediaRouteCallback, MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
-//			}
-//			
-//			isScanning = true;
+			if (!isScanning)
+			{
+				mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback, MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
+			}
+			
+			isScanning = true;
+			
+			emitAllRoutes();
 			
 			return null;
 		}	
@@ -143,12 +129,12 @@ public class AirCastExtensionContext
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
 		{
-//			if (isScanning)
-//			{
-//				mMediaRouter.removeCallback(mediaRouteCallback);
-//			}
-//			
-//			isScanning = false;
+			if (isScanning)
+			{
+				mMediaRouter.removeCallback(mMediaRouterCallback);
+			}
+			
+			isScanning = false;
 			
 			return null;
 		}
@@ -166,8 +152,8 @@ public class AirCastExtensionContext
 			
 			if (currentSession != null)
 			{
-				JSONObject obj = currentSession.createSessionObject();
-				// TODO Convert obj to FREObject and return it?
+				// TODO Should we disconnect and create a new session?
+				
 				return null;
 			}
 			
@@ -186,12 +172,12 @@ public class AirCastExtensionContext
 					{
 						if (route.getId().equals(routeId)) 
 						{
-							createSession(route, context);
+							createSession(route);
 							return;
 						}
 					}
 					
-					// TODO Return "No route found" error to AIR?
+					// TODO Dispatch "No route found" error?
 					
 				}
 			});
@@ -202,12 +188,12 @@ public class AirCastExtensionContext
 	
 	/**
 	 * Helper for the creating of a session! The user-selected RouteInfo needs to be passed to a new ChromecastSession 
-	 * @param routeInfo
+	 * @param route
 	 * @param callbackContext
 	 */
-	private void createSession(RouteInfo routeInfo, FREContext context) 
+	private void createSession(final RouteInfo route) 
 	{
-		currentSession = new ChromecastSession(routeInfo, context, this, this);
+		currentSession = new ChromecastSession(route, this, this, this);
 		
 		// Launch the app.
 		currentSession.launch(appId, new ChromecastSessionCallback() 
@@ -224,20 +210,12 @@ public class AirCastExtensionContext
 				else if (session == currentSession)
 				{
 					setLastSessionId(currentSession.getSessionId());
+					currentSession.createSessionObject();
 					
-					// TODO Somehow return data to AIR app
-					
-//					if (callbackContext != null) 
-//					{
-//						callbackContext.success(session.createSessionObject());
-//					}
-//					else 
-//					{
-//						sendJavascript("chrome.cast._.sessionJoined(" + currentSession.createSessionObject().toString() + ");");
-//					}
+					dispatchStatus(EVENT_CONNECT_TO_DEVICE, routeToJSON(route));
 				}
 			}
-
+			
 			@Override
 			void onError(String reason) 
 			{
@@ -255,9 +233,9 @@ public class AirCastExtensionContext
 		});
 	}
 	
-	private void joinSession(RouteInfo routeInfo, FREContext context) 
+	private void joinSession(RouteInfo routeInfo) 
 	{
-		ChromecastSession sessionJoinAttempt = new ChromecastSession(routeInfo, context, this, this);
+		ChromecastSession sessionJoinAttempt = new ChromecastSession(routeInfo, this, this, this);
 		
 		sessionJoinAttempt.join(this.appId, this.lastSessionId, new ChromecastSessionCallback() 
 		{
@@ -270,11 +248,14 @@ public class AirCastExtensionContext
 					{
 						currentSession = (ChromecastSession) object;
 						setLastSessionId(currentSession.getSessionId());
-						sendJavascript("chrome.cast._.sessionJoined(" + currentSession.createSessionObject().toString() + ");");
+						
+						dispatchStateChange();
+						
+//						sendJavascript("chrome.cast._.sessionJoined(" + currentSession.createSessionObject().toString() + ");");
 					} 
 					catch (Exception e) 
 					{
-						log("wut.... " + e.getMessage() + e.getStackTrace());
+						log(e.getMessage());
 					}
 				}
 			}
@@ -327,29 +308,38 @@ public class AirCastExtensionContext
 				
 				JSONObject metadata = new JSONObject(matadataMap);
 				
-				Boolean success = currentSession.loadMedia(contentId, contentType, duration, streamType, autoPlay, currentTime, metadata);
+				currentSession.loadMedia
+				(
+					contentId, 
+					contentType, 
+					duration, 
+					streamType, 
+					autoPlay, 
+					currentTime, 
+					metadata,
 				
-//				, new ChromecastSessionCallback() 
-//				{
-//					@Override
-//					void onSuccess(Object object) 
-//					{
-//						if (object == null) 
-//						{
-//							onError("unknown");
-//						}
-//						else 
-//						{
-//							// TODO Update media status in AIR
-//						}
-//					}
-//
-//					@Override
-//					void onError(String reason)
-//					{
-//						// TODO Error event to AIR
-//					}
-//				});
+					new ChromecastSessionCallback() 
+					{
+						@Override
+						void onSuccess(Object obj) 
+						{
+							if (obj == null) 
+							{
+								onError("unknown");
+							}
+							else 
+							{
+								dispatchStatus(EVENT_RECEIVED_MEDIA_STATE_CHANGE, (JSONObject)obj);
+							}
+						}
+						
+						@Override
+						void onError(String reason)
+						{
+							// TODO Error event to AIR
+						}
+					}
+				);
 			}
 			else 
 			{
@@ -401,7 +391,7 @@ public class AirCastExtensionContext
 		{
 			if (currentSession != null) 
 			{
-				currentSession.mediaPlay();
+				currentSession.mediaPlay(stateChangeCallback);
 			}
 			
 			return null;
@@ -418,7 +408,7 @@ public class AirCastExtensionContext
 		{
 			if (currentSession != null) 
 			{
-				currentSession.mediaPause();
+				currentSession.mediaPause(stateChangeCallback);
 			}
 			
 			return null;
@@ -450,7 +440,7 @@ public class AirCastExtensionContext
 				Double seekTime = getDoubleFromFREObject(args[0]); 
 				String resumeState = "";
 				
-				currentSession.mediaSeek(seekTime.longValue() * 1000, resumeState);
+				currentSession.mediaSeek(seekTime.longValue() * 1000, resumeState, stateChangeCallback);
 			}
 			
 			return null;
@@ -466,7 +456,7 @@ public class AirCastExtensionContext
 		{
 			if (currentSession != null) 
 			{
-				currentSession.mediaStop();
+				currentSession.mediaStop(stateChangeCallback);
 			}
 			
 			return null;
@@ -482,7 +472,7 @@ public class AirCastExtensionContext
 		{
 			if (currentSession != null) 
 			{
-				currentSession.setVolume(getDoubleFromFREObject(args[0]));
+				currentSession.setVolume(getDoubleFromFREObject(args[0]), stateChangeCallback);
 			} 
 			
 			return null;
@@ -499,7 +489,7 @@ public class AirCastExtensionContext
 			if (currentSession != null) 
 			{
 				Boolean muted = getBooleanFromFREObject(args[0]);
-				currentSession.mediaSetMuted(muted);
+				currentSession.mediaSetMuted(muted, stateChangeCallback);
 			}
 			
 			return null;
@@ -558,7 +548,23 @@ public class AirCastExtensionContext
 		}
 	};
 	
-	// INTERNAL
+	
+	/*
+	 * INTERNAL FUNCTIONS
+	 */
+	
+	private void setLastSessionId(String sessionId) 
+	{
+		this.lastSessionId = sessionId;
+		this.settings.edit().putString("lastSessionId", sessionId).apply();
+	}
+	
+	@Override
+	public void dispose()
+	{
+		AirCastExtension.context = null;
+		mMediaRouter.removeCallback(mMediaRouterCallback);
+	}
 	
 	/**
 	 * Stops the session
@@ -569,7 +575,7 @@ public class AirCastExtensionContext
 	{
 		if (this.currentSession != null) 
 		{
-			this.currentSession.kill();
+			this.currentSession.kill(stateChangeCallback);
 			this.currentSession = null;
 			this.setLastSessionId("");
 		}
@@ -586,7 +592,7 @@ public class AirCastExtensionContext
 	{
 		if (this.currentSession != null) 
 		{
-			this.currentSession.leave();
+			this.currentSession.leave(stateChangeCallback);
 			this.currentSession = null;
 			this.setLastSessionId("");
 		}
@@ -594,10 +600,7 @@ public class AirCastExtensionContext
 		return true;
 	}
 	
-	/**
-	 * Checks to see how many receivers are available - emits the receiver status down to Javascript
-	 */
-	private void checkReceiverAvailable() 
+	public void emitAllRoutes() 
 	{
 		final Activity activity = getActivity();
 		
@@ -607,75 +610,22 @@ public class AirCastExtensionContext
 			{
 				mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
 				List<RouteInfo> routeList = mMediaRouter.getRoutes();
-				boolean available = false;
 				
-				for (RouteInfo route: routeList) 
-				{
-					if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
-					{
-						available = true;
-						break;
-					}
-				}
-				
-				if (available || (currentSession != null && currentSession.isConnected())) 
-				{
-					sendJavascript("chrome.cast._.receiverAvailable()");
-				}
-				else 
-				{
-					sendJavascript("chrome.cast._.receiverUnavailable()");
-				}
-			}
-		});
-	}
-	
-	public boolean emitAllRoutes() 
-	{
-		final Activity activity = getActivity();
-		
-		activity.runOnUiThread(new Runnable() 
-		{
-			public void run() 
-			{
-				mMediaRouter = MediaRouter.getInstance(activity.getApplicationContext());
-				List<RouteInfo> routeList = mMediaRouter.getRoutes();
+				JSONArray devices = new JSONArray();
 				
 				for (RouteInfo route : routeList) 
 				{
 					if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
 					{
-						sendJavascript("chrome.cast._.routeAdded(" + routeToJSON(route) + ")");
+						devices.put(routeToJSON(route));
 					}
 				}
+				
+				dispatchStatus(EVENT_DEVICE_LIST_CHANGED, devices);
 			}
 		});
-		
-		return true;
 	}
-	
-	/**
-	 * Creates a ChromecastSessionCallback that's generic for a CallbackContext 
-	 * @param callbackContext
-	 * @return
-	 */
-//	private ChromecastSessionCallback genericCallback (final CallbackContext callbackContext) 
-//	{
-//		return new ChromecastSessionCallback() {
-//
-//			@Override
-//			public void onSuccess(Object object) {
-//				callbackContext.success();
-//			}
-//
-//			@Override
-//			public void onError(String reason) {
-//				callbackContext.error(reason);
-//			}
-//			
-//		};
-//	};
-	
+		
 	/**
 	 * Called when a route is discovered
 	 * @param router
@@ -683,22 +633,22 @@ public class AirCastExtensionContext
 	 */
 	protected void onRouteAdded(MediaRouter router, final RouteInfo route, FREContext context) 
 	{
-		if (this.autoConnect && this.currentSession == null && !route.getName().equals("Phone")) 
-		{
-			log("Attempting to join route " + route.getName());
-			this.joinSession(route, context);
-		}
-		else 
-		{
-			log("For some reason, not attempting to join route " + route.getName() + ", " + this.currentSession + ", " + this.autoConnect);
-		}
+//		if (this.autoConnect && this.currentSession == null && !route.getName().equals("Phone")) 
+//		{
+//			log("Attempting to join route " + route.getName());
+//			this.joinSession(route, context);
+//		}
+//		else 
+//		{
+//			log("For some reason, not attempting to join route " + route.getName() + ", " + this.currentSession + ", " + this.autoConnect);
+//		}
+//		
+//		if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
+//		{
+//			sendJavascript("chrome.cast._.routeAdded(" + routeToJSON(route) + ")");
+//		}
 		
-		if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
-		{
-			sendJavascript("chrome.cast._.routeAdded(" + routeToJSON(route) + ")");
-		}
-		
-		checkReceiverAvailable();
+		emitAllRoutes();
 	}
 
 	/**
@@ -708,114 +658,35 @@ public class AirCastExtensionContext
 	 */
 	protected void onRouteRemoved(MediaRouter router, RouteInfo route)
 	{
-		checkReceiverAvailable();
-		
-		if (!route.getName().equals("Phone") && route.getId().indexOf("Cast") > -1) 
-		{
-			sendJavascript("chrome.cast._.routeRemoved(" + routeToJSON(route) + ")");
-		}
+		emitAllRoutes();
 	}
 
 	/**
 	 * Called when a route is selected through the MediaRouter
+	 * 
 	 * @param router
 	 * @param route
 	 */
 	protected void onRouteSelected(MediaRouter router, RouteInfo route) 
 	{	
-		createSession(route, null);
+		createSession(route);
 	}
-
+	
 	/**
 	 * Called when a route is unselected through the MediaRouter
+	 * 
 	 * @param router
 	 * @param route
 	 */
 	protected void onRouteUnselected(MediaRouter router, RouteInfo route)
 	{
-		//
+		dispatchStatus(EVENT_DISCONNECTED, routeToJSON(route));
 	}
-	
-	/*
-	private Cast.Listener castClientListener = new Cast.Listener() 
-	{
-		//
-	}
-	
-	private MediaRouter.Callback mediaRouteCallback = new Callback() 
-	{
-		@Override
-		public void onRouteSelected(MediaRouter router, MediaRouter.RouteInfo route)
-		{
-			Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions
-				.builder(route, castClientListener);
-			
-			apiClient = new GoogleApiClient.Builder(this)
-				.addApi(Cast.API, apiOptionsBuilder.build())
-				.addConnectionCallbacks(mConnectionCallbacks)
-				.addOnConnectionFailedListener(mConnectionFailedListener)
-				.build();
-		}
-		
-		@Override
-		public void onRouteUnselected(MediaRouter router, MediaRouter.RouteInfo route)
-		{
-			//
-		}
-		
-		@Override
-		public void onRouteAdded(MediaRouter router, MediaRouter.RouteInfo route)
-		{
-			//
-		}
-		
-		@Override
-		public void onRouteRemoved(MediaRouter router, MediaRouter.RouteInfo route)
-		{
-			//
-		}
-		
-		@Override
-		public void onRouteChanged(MediaRouter router, MediaRouter.RouteInfo route)
-		{
-			//
-		}
-		
-		@Override
-		public void onRouteVolumeChanged(MediaRouter router, MediaRouter.RouteInfo route)
-		{
-			//
-		}
-		
-		@Override
-		public void onRoutePresentationDisplayChanged(MediaRouter router, MediaRouter.RouteInfo route)
-		{
-			//
-		}
-		
-		@Override
-		public void onProviderAdded(MediaRouter router, MediaRouter.ProviderInfo provider)
-		{
-			//
-		}
-		
-		@Override
-		public void onProviderRemoved(MediaRouter router, MediaRouter.ProviderInfo provider)
-		{
-			//
-		}
-		
-		@Override
-		public void onProviderChanged(MediaRouter router, MediaRouter.ProviderInfo provider)
-		{
-			//
-		}
-		
-	}
-	*/
 	
 	/**
-	 * Simple helper to convert a route to JSON for passing down to the AIR side
+	 * Converts RouteInfo data into a format consistent with the iOS elements
+	 * of the ANE ready to be returned to AIR
+	 * 
 	 * @param route
 	 * @return
 	 */
@@ -825,8 +696,13 @@ public class AirCastExtensionContext
 		
 		try 
 		{
-			obj.put("name", route.getName());
-			obj.put("id", route.getId());
+			obj.put("ipAddress", "");
+			obj.put("servicePort", "");
+			obj.put("deviceID", route.getId());
+			obj.put("friendlyName", route.getName());
+			obj.put("manufacturer", "");
+			obj.put("modelName", "");
+			obj.put("icons", new JSONArray());
 		}
 		catch (JSONException e) 
 		{
@@ -839,14 +715,16 @@ public class AirCastExtensionContext
 	@Override
 	public void onMediaUpdated(boolean isAlive, JSONObject media) 
 	{
-		if (isAlive) 
-		{
-			sendJavascript("chrome.cast._.mediaUpdated(true, " + media.toString() +");");
-		} 
-		else 
-		{
-			sendJavascript("chrome.cast._.mediaUpdated(false, " + media.toString() +");");
-		}
+		dispatchStateChange();
+		
+//		if (isAlive) 
+//		{
+//			sendJavascript("chrome.cast._.mediaUpdated(true, " + media.toString() +");");
+//		} 
+//		else 
+//		{
+//			sendJavascript("chrome.cast._.mediaUpdated(false, " + media.toString() +");");
+//		}
 	}
 
 	@Override
@@ -854,12 +732,12 @@ public class AirCastExtensionContext
 	{
 		if (isAlive) 
 		{
-			sendJavascript("chrome.cast._.sessionUpdated(true, " + session.toString() + ");");
+			dispatchStateChange();
+//			sendJavascript("chrome.cast._.sessionUpdated(true, " + session.toString() + ");");
 		}
 		else 
 		{
-			log("SESSION DESTROYYYY");
-			sendJavascript("chrome.cast._.sessionUpdated(false, " + session.toString() + ");");
+//			sendJavascript("chrome.cast._.sessionUpdated(false, " + session.toString() + ");");
 			this.currentSession = null;
 		}
 	}
@@ -867,40 +745,70 @@ public class AirCastExtensionContext
 	@Override
 	public void onMediaLoaded(JSONObject media) 
 	{
-		sendJavascript("chrome.cast._.mediaLoaded(true, " + media.toString() +");");
+		dispatchStateChange();
+//		sendJavascript("chrome.cast._.mediaLoaded(true, " + media.toString() +");");
 	}
 
 	@Override
 	public void onMessage(ChromecastSession session, String namespace, String message) 
 	{
-		sendJavascript("chrome.cast._.onMessage('" + session.getSessionId() +"', '" + namespace + "', '" + message  + "')");
+		dispatchStateChange();
+//		sendJavascript("chrome.cast._.onMessage('" + session.getSessionId() +"', '" + namespace + "', '" + message  + "')");
 	}
-
-	private void sendJavascript(final String javascript) 
+	
+	/**
+	 * Default callback for any action that results in the media state changing
+	 * 
+	 * TODO Implement this
+	 */
+	private ChromecastSessionCallback stateChangeCallback = new ChromecastSessionCallback()
 	{
-		// TODO Replace this with a function that calls AIR events
+		@Override
+		void onSuccess(Object object) 
+		{
+			dispatchStateChange();
+		}
 		
-//		webView.post(new Runnable() 
-//		{
-//			@Override
-//			public void run() 
-//			{
-//				// See: https://github.com/GoogleChrome/chromium-webview-samples/blob/master/jsinterface-example/app/src/main/java/jsinterfacesample/android/chrome/google/com/jsinterface_example/MainFragment.java
-//				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) 
-//				{
-//					webView.evaluateJavascript(javascript, null);
-//				}
-//				else 
-//				{
-//					webView.loadUrl("javascript:" + javascript);
-//				}
-//			}
-//		});
+		@Override
+		void onError(String reason) 
+		{
+			// TODO Dispatch errors back to AIR?
+		}
+	};
+	
+	/**
+	 * Dispatches the current media state back to AIR
+	 */
+	private void dispatchStateChange()
+	{
+		dispatchStatus(EVENT_RECEIVED_MEDIA_STATE_CHANGE, currentSession.createSessionObject());
+	}
+	
+	/**
+	 * Dispatch a status event to AIR
+	 * 
+	 * @param context
+	 * @param level
+	 * @param code
+	 */
+	private void dispatchStatus(String type, String data)
+	{
+		dispatchStatusEventAsync(type, data);
+	}
+	
+	private void dispatchStatus(String type, JSONObject data)
+	{
+		dispatchStatus(type, data.toString());
+	}
+	
+	private void dispatchStatus(String type, JSONArray data)
+	{
+		dispatchStatus(type, data.toString());
 	}
 	
 	private void log(String s) 
 	{
-		sendJavascript("console.log('" + s + "');");
+		dispatchStatus(EVENT_LOGGING, s);
 	}
 	
 	@Override

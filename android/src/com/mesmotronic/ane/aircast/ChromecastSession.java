@@ -31,13 +31,15 @@ import android.support.v7.media.MediaRouter.RouteInfo;
 /*
  * All of the Chromecast session specific functions should start here. 
  */
-public class ChromecastSession extends Cast.Listener implements 
-	GoogleApiClient.ConnectionCallbacks, 
-	GoogleApiClient.OnConnectionFailedListener, 
-	OnMetadataUpdatedListener, 
-	OnStatusUpdatedListener,
-	Cast.MessageReceivedCallback 
-{
+public class ChromecastSession 
+	extends Cast.Listener 
+	implements 
+		GoogleApiClient.ConnectionCallbacks, 
+		GoogleApiClient.OnConnectionFailedListener, 
+		OnMetadataUpdatedListener, 
+		OnStatusUpdatedListener,
+		Cast.MessageReceivedCallback {
+
 	private RouteInfo routeInfo = null;
 	private volatile GoogleApiClient mApiClient = null;	
 	private volatile RemoteMediaPlayer mRemoteMediaPlayer;
@@ -61,7 +63,9 @@ public class ChromecastSession extends Cast.Listener implements
 	private HashSet<String> messageNamespaces = new HashSet<String>();
 	
 	public ChromecastSession(RouteInfo routeInfo, FREContext freContext, 
-			ChromecastOnMediaUpdatedListener onMediaUpdatedListener, ChromecastOnSessionUpdatedListener onSessionUpdatedListener) 
+		ChromecastOnMediaUpdatedListener onMediaUpdatedListener, 
+		ChromecastOnSessionUpdatedListener onSessionUpdatedListener
+	) 
 	{
 		this.context = freContext;
         this.onMediaUpdatedListener = onMediaUpdatedListener;
@@ -97,9 +101,9 @@ public class ChromecastSession extends Cast.Listener implements
 	 * Adds a message listener if one does not already exist
 	 * @param namespace
 	 */
-	public void addMessageListener(String namespace)
+	public void addMessageListener(String namespace) 
 	{
-		if (messageNamespaces.contains(namespace) == false)
+		if (messageNamespaces.contains(namespace) == false) 
 		{
 			try 
 			{
@@ -119,7 +123,7 @@ public class ChromecastSession extends Cast.Listener implements
 	 * @param message
 	 * @param callback
 	 */
-	public void sendMessage(String namespace, String message, final ChromecastSessionCallback callback)
+	public void sendMessage(String namespace, String message, final ChromecastSessionCallback callback) 
 	{
 		try 
 		{
@@ -128,10 +132,10 @@ public class ChromecastSession extends Cast.Listener implements
 		        @Override
 		        public void onResult(Status result) 
 		        {
-		          if (!result.isSuccess()) 
+		          if (result.isSuccess()) 
 		          {
 		        	  callback.onSuccess();
-		          }
+		          } 
 		          else 
 		          {
 		        	  callback.onError(result.toString());
@@ -164,27 +168,37 @@ public class ChromecastSession extends Cast.Listener implements
 	 * Kills a session and it's underlying media player
 	 * @param callback
 	 */
-	public void kill () 
+	public void kill (final ChromecastSessionCallback callback) 
 	{
 		try 
 		{
 			Cast.CastApi.stopApplication(mApiClient);
 			mApiClient.disconnect();
+		} 
+		catch(Exception e) 
+		{
+			//
 		}
-		catch(Exception e) {}
+		
+		callback.onSuccess();
 	}
 	
 	/**
 	 * Leaves the session.
 	 * @param callback
 	 */
-	public void leave() 
+	public void leave (final ChromecastSessionCallback callback) 
 	{
 		try 
 		{
 			Cast.CastApi.leaveApplication(mApiClient);
+		} 
+		catch(Exception e) 
+		{
+			//
 		}
-		catch(Exception e) {}
+		
+		callback.onSuccess();
 	}	
 	
 	/**
@@ -198,46 +212,56 @@ public class ChromecastSession extends Cast.Listener implements
 	 * @param callback
 	 * @return
 	 */
-	public boolean loadMedia(String contentId, String contentType, long duration, String streamType, boolean autoPlay, double currentTime, JSONObject metadata) 
+	public boolean loadMedia(String contentId, String contentType, long duration, 
+		String streamType, boolean autoPlay, double currentTime, 
+		JSONObject metadata, final ChromecastSessionCallback callback
+	) 
 	{
 		try 
 		{
 			MediaInfo mediaInfo = chromecastMediaController.createLoadUrlRequest(contentId, contentType, duration, streamType, metadata);
 			
-			mRemoteMediaPlayer.load(mApiClient, mediaInfo, autoPlay, (long)(currentTime * 1000))
-				.setResultCallback(new ResultCallback<RemoteMediaPlayer.MediaChannelResult>()
+			mRemoteMediaPlayer.load
+			(
+				mApiClient, 
+				mediaInfo, 
+				autoPlay, 
+				(long)(currentTime * 1000))
+				
+				.setResultCallback(new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() 
 				{
 					@Override
-					public void onResult(MediaChannelResult result)
+					public void onResult(MediaChannelResult result) 
 					{
 						if (result.getStatus().isSuccess()) 
 						{
 							System.out.println("Media loaded successfully");
-							
+
                             ChromecastSession.this.onMediaUpdatedListener.onMediaLoaded(ChromecastSession.this.createMediaObject());
-							JSONObject obj = ChromecastSession.this.createMediaObject();
-							
-							// TODO Return media object to AIR
-						} 
+							callback.onSuccess(ChromecastSession.this.createMediaObject());
+						}
 						else 
 						{
-//							callback.onError("session_error");
+							callback.onError("session_error");
 						}
 				    }
-				});
-    	}
+				}
+			);
+    	} 
 		catch (IllegalStateException e) 
 		{
     		e.printStackTrace();
     		System.out.println("Problem occurred with media during loading");
-//    		callback.onError("session_error");
+    		callback.onError("session_error");
+    		
     		return false;
     	}
 		catch (Exception e) 
 		{
     		e.printStackTrace();
-//    		callback.onError("session_error");
+    		callback.onError("session_error");
     		System.out.println("Problem opening media during loading");
+    		
     		return false;
     	}
 		
@@ -248,18 +272,18 @@ public class ChromecastSession extends Cast.Listener implements
 	 * Media API - Calls play on the current media
 	 * @param callback
 	 */
-	public void mediaPlay()
+	public void mediaPlay(ChromecastSessionCallback callback) 
 	{
-		chromecastMediaController.play(mApiClient);
+		chromecastMediaController.play(mApiClient, callback);
 	}
 	
 	/**
 	 * Media API - Calls pause on the current media
 	 * @param callback
 	 */
-	public void mediaPause() 
+	public void mediaPause(ChromecastSessionCallback callback) 
 	{
-		chromecastMediaController.pause(mApiClient);
+		chromecastMediaController.pause(mApiClient, callback);
 	}
 	
 	/**
@@ -268,9 +292,9 @@ public class ChromecastSession extends Cast.Listener implements
 	 * @param resumeState - Resume state once seeking is complete: PLAYBACK_PAUSE or PLAYBACK_START
 	 * @param callback
 	 */
-	public void mediaSeek(long seekPosition, String resumeState) 
+	public void mediaSeek(long seekPosition, String resumeState, ChromecastSessionCallback callback) 
 	{
-		chromecastMediaController.seek(seekPosition, resumeState, mApiClient);
+		chromecastMediaController.seek(seekPosition, resumeState, mApiClient, callback);
 	}
 	
 	/**
@@ -278,9 +302,9 @@ public class ChromecastSession extends Cast.Listener implements
 	 * @param level
 	 * @param callback
 	 */
-	public void mediaSetVolume(double level) 
+	public void mediaSetVolume(double level, ChromecastSessionCallback callback) 
 	{
-		chromecastMediaController.setVolume(level, mApiClient);
+		chromecastMediaController.setVolume(level, mApiClient, callback);
 	}
 	
 	/**
@@ -288,34 +312,37 @@ public class ChromecastSession extends Cast.Listener implements
 	 * @param muted
 	 * @param callback
 	 */
-	public void mediaSetMuted(boolean muted) 
+	public void mediaSetMuted(boolean muted, ChromecastSessionCallback callback) 
 	{
-		chromecastMediaController.setMuted(muted, mApiClient);
+		chromecastMediaController.setMuted(muted, mApiClient, callback);
 	}
 	
 	/**
 	 * Media API - Stops and unloads the current playing media
 	 * @param callback
 	 */
-	public void mediaStop() 
+	public void mediaStop(ChromecastSessionCallback callback) 
 	{
-		chromecastMediaController.stop(mApiClient);
+		chromecastMediaController.stop(mApiClient, callback);
 	}
+	
 	
 	/**
 	 * Sets the receiver volume level
 	 * @param volume
 	 * @param callback
 	 */
-	public void setVolume(double volume)
+	public void setVolume(double volume, ChromecastSessionCallback callback) 
 	{
 		try 
 		{
 			Cast.CastApi.setVolume(mApiClient, volume);
+			callback.onSuccess();
 		}
 		catch (Exception e) 
 		{
 			e.printStackTrace();
+			callback.onError(e.getMessage());
 		}
 	}
 	
@@ -324,18 +351,19 @@ public class ChromecastSession extends Cast.Listener implements
 	 * @param muted
 	 * @param callback
 	 */
-	public void setMute(boolean muted)
+	public void setMute(boolean muted, ChromecastSessionCallback callback) 
 	{
 		try
 		{
 			Cast.CastApi.setMute(mApiClient, muted);
-		} 
+			callback.onSuccess();
+		}
 		catch (Exception e) 
 		{
 			e.printStackTrace();
+			callback.onError(e.getMessage());
 		}
 	}
-	
 	
 	/**
 	 * Connects to the device with all callbacks and things
@@ -365,7 +393,7 @@ public class ChromecastSession extends Cast.Listener implements
 	 */
 	private void launchApplication() 
 	{
-		Cast.CastApi.launchApplication(mApiClient, appId, false)
+		Cast.CastApi.launchApplication(mApiClient, this.appId, false)
 			.setResultCallback(launchApplicationResultCallback);
 	}
 	
@@ -374,7 +402,7 @@ public class ChromecastSession extends Cast.Listener implements
 	 */
 	private void joinApplication() 
 	{
-		Cast.CastApi.joinApplication(this.mApiClient, appId, lastSessionId)
+		Cast.CastApi.joinApplication(this.mApiClient, this.appId, this.lastSessionId)
 			.setResultCallback(joinApplicationResultCallback);
 	}
 	
@@ -390,7 +418,6 @@ public class ChromecastSession extends Cast.Listener implements
 		mRemoteMediaPlayer.requestStatus(mApiClient)
 			.setResultCallback(connectRemoteMediaPlayerCallback);
 	}
-	
 	
 	/**
 	 * launchApplication callback
@@ -414,11 +441,11 @@ public class ChromecastSession extends Cast.Listener implements
 					ChromecastSession.this.launchCallback.onSuccess(ChromecastSession.this);
 					connectRemoteMediaPlayer();
 					ChromecastSession.this.isConnected = true;
-				} 
+				}
 				catch (IllegalStateException e) 
 				{
 					e.printStackTrace();
-				} 
+				}
 				catch (IOException e) 
 				{
 					e.printStackTrace();
@@ -462,7 +489,7 @@ public class ChromecastSession extends Cast.Listener implements
 				{
 					e.printStackTrace();
 				}
-			} 
+			}
 			else 
 			{
 				ChromecastSession.this.joinSessionCallback.onError(status.toString());
@@ -482,7 +509,7 @@ public class ChromecastSession extends Cast.Listener implements
 			if (result.getStatus().isSuccess()) 
 			{
                 ChromecastSession.this.onMediaUpdatedListener.onMediaUpdated(true, ChromecastSession.this.createMediaObject());
-//				ChromecastSession.this.onMediaUpdatedListener.onMediaLoaded(ChromecastSession.this.createMediaObject());
+				/*ChromecastSession.this.onMediaUpdatedListener.onMediaLoaded(ChromecastSession.this.createMediaObject());*/
 			}
 			else 
 			{
@@ -528,14 +555,20 @@ public class ChromecastSession extends Cast.Listener implements
 				volume.put("level", Cast.CastApi.getVolume(mApiClient));
 				volume.put("muted", Cast.CastApi.isMute(mApiClient));
 			}
-			catch(Exception e) {}
+			catch(Exception e) 
+			{
+				//
+			}
 			
 			receiver.put("volume", volume);
 			
 			out.put("receiver", receiver);
 			
 		} 
-		catch(JSONException e) {}
+		catch(JSONException e) 
+		{
+			//
+		}
 		
 		return out;
 	}
@@ -581,7 +614,7 @@ public class ChromecastSession extends Cast.Listener implements
 					out.put("playerState", "UNKNOWN"); break;
 			}
 			
-			switch(mediaStatus.getIdleReason()) 
+			switch (mediaStatus.getIdleReason()) 
 			{
 				case MediaStatus.IDLE_REASON_CANCELED:
 					out.put("idleReason", "canceled"); break;
@@ -614,15 +647,23 @@ public class ChromecastSession extends Cast.Listener implements
 					case MediaInfo.STREAM_TYPE_NONE:
 						objInfo.put("streamType", "other"); break;
 				}
+			} 
+			catch (Exception e) 
+			{
+				//
 			}
-			catch (Exception e) {}
 			
 		} 
-		catch(JSONException e) {}
+		catch(JSONException e) 
+		{
+			//
+		}
 		
 		return out;
 	}
 	
+	
+
 	/* GoogleApiClient.ConnectionCallbacks implementation
 	 * Called when we successfully connect to the API
 	 * (non-Javadoc)
@@ -633,11 +674,11 @@ public class ChromecastSession extends Cast.Listener implements
 	{
 		if (this.joinInsteadOfConnecting) 
 		{
-			joinApplication();
+			this.joinApplication();
 		}
 		else 
 		{
-			launchApplication();
+			this.launchApplication();
 		}
 	}
 	
@@ -742,8 +783,7 @@ public class ChromecastSession extends Cast.Listener implements
 	@Override
 	public void onMessageReceived(CastDevice castDevice, String namespace, String message) 
 	{
-		if (this.onSessionUpdatedListener != null) 
-		{
+		if (this.onSessionUpdatedListener != null) {
 			this.onSessionUpdatedListener.onMessage(this, namespace, message);
 		}
 	}

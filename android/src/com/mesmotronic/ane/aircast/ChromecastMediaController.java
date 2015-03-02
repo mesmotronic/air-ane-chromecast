@@ -72,25 +72,25 @@ public class ChromecastMediaController
     	return mediaInfo;
 	}
 	
-	public void play(GoogleApiClient apiClient) 
+	public void play(GoogleApiClient apiClient, ChromecastSessionCallback callback) 
 	{
 		PendingResult<MediaChannelResult> res = this.remote.play(apiClient);
-//		res.setResultCallback(this.createMediaCallback(callback));
+		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void pause(GoogleApiClient apiClient) 
+	public void pause(GoogleApiClient apiClient, ChromecastSessionCallback callback) 
 	{
 		PendingResult<MediaChannelResult> res = this.remote.pause(apiClient);
-//		res.setResultCallback(this.createMediaCallback(callback));
+		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void stop(GoogleApiClient apiClient)
+	public void stop(GoogleApiClient apiClient, ChromecastSessionCallback callback)
 	{
 		PendingResult<MediaChannelResult> res = this.remote.stop(apiClient);
-//		res.setResultCallback(this.createMediaCallback(callback));
+		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void seek(long seekPosition, String resumeState, GoogleApiClient apiClient) 
+	public void seek(long seekPosition, String resumeState, GoogleApiClient apiClient, ChromecastSessionCallback callback) 
 	{
 		PendingResult<MediaChannelResult> res = null;
 		
@@ -115,22 +115,22 @@ public class ChromecastMediaController
 			res = this.remote.seek(apiClient, seekPosition);
 		}
 		
-//		res.setResultCallback(this.createMediaCallback(callback));
+		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void setVolume(double volume, GoogleApiClient apiClient) 
+	public void setVolume(double volume, GoogleApiClient apiClient, ChromecastSessionCallback callback) 
 	{
 		PendingResult<MediaChannelResult> res = this.remote.setStreamVolume(apiClient, volume);
-//		res.setResultCallback(this.createMediaCallback(callback));
+		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	public void setMuted(boolean muted, GoogleApiClient apiClient) 
+	public void setMuted(boolean muted, GoogleApiClient apiClient, ChromecastSessionCallback callback) 
 	{
 		PendingResult<MediaChannelResult> res = this.remote.setStreamMute(apiClient, muted);
-//		res.setResultCallback(this.createMediaCallback(callback));
+		res.setResultCallback(this.createMediaCallback(callback));
 	}
 	
-	private ResultCallback<RemoteMediaPlayer.MediaChannelResult> createMediaCallback()
+	private ResultCallback<RemoteMediaPlayer.MediaChannelResult> createMediaCallback(final ChromecastSessionCallback callback)
 	{
 		return new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() 
 		{
@@ -139,11 +139,11 @@ public class ChromecastMediaController
 		    {
 				if (result.getStatus().isSuccess()) 
 				{
-//					callback.onSuccess();
+					callback.onSuccess();
 				}
 				else 
 				{
-//					callback.onError("channel_error");
+					callback.onError("channel_error");
 				}
 		    }
 		};

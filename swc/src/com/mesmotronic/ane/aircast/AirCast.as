@@ -65,7 +65,9 @@ package com.mesmotronic.ane.aircast
 
 		/** 
 		 * initialize the cast sender with the receiver app ID.
-		 * If no app ID is set, we use the default Chromecast application  
+		 * 
+		 * <p>If no app ID is set, we use the default Chromecast media 
+		 * player application</p>  
 		 */
 		public function init(appID:String='CC1AD845'):void
 		{
@@ -74,15 +76,19 @@ package com.mesmotronic.ane.aircast
 			_context.call('initNE', appID);
 		}
 		
-		/** Perform a device scan to discover devices on the network. */
-		public function scan():void
+		/** 
+		 * Start scanning for Chromecast devices on the network. 
+		 */
+		public function startScan():void
 		{
 			if (!isSupported) return;
 			log( "initiating scan" );
 			_context.call('scan') ;
 		}
-
-		/** Stop any ongoing device scan */
+		
+		/** 
+		 * Stop any ongoing device scan 
+		 */
 		public function stopScan():void
 		{
 			if (!isSupported) return;
@@ -90,7 +96,9 @@ package com.mesmotronic.ane.aircast
 			_context.call('stopScan') ;
 		}
 
-		/** Search for a device with given ID and connect to it
+		/** 
+		 * Search for a device with given ID and connect to it
+		 * 
 		 * @returns false if the device could not be found, true otherwise
 		 * @note	a return of true does not mean we connected to the receiver
 		 *			listen to AirCastDeviceEvent.DID_CONNECT_TO_DEVICE to know
@@ -223,6 +231,7 @@ package com.mesmotronic.ane.aircast
 		{
 			var now:Date = new Date();
 			var callback:Function;
+			var jsonObject:Object;
 			
 			switch (event.code)
 			{
@@ -234,9 +243,9 @@ package com.mesmotronic.ane.aircast
 					
 					try
 					{
-						var jsonObject:Object = JSON.parse(event.level);
+						jsonObject = JSON.parse(event.level) as Array;
 						
-						for each( var deviceJsonObject:Object in (jsonObject as Array))
+						for each(var deviceJsonObject:Object in (jsonObject as Array))
 						{
 							deviceList.push(AirCastDevice.fromJSONObject(deviceJsonObject));
 						}
@@ -246,7 +255,7 @@ package com.mesmotronic.ane.aircast
 						log(e.toString());
 					}
 					
-					dispatchEvent( new AirCastDeviceListEvent(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceList) );
+					dispatchEvent(new AirCastDeviceListEvent(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceList));
 					break;
 				}
 					
