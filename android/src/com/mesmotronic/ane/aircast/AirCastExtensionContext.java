@@ -57,7 +57,7 @@ public class AirCastExtensionContext
 	/**
 	 * Initialize the ANE
 	 */
-	private BaseFunction initNE = new BaseFunction()
+	public BaseFunction initNE = new BaseFunction()
 	{
 		@Override 
 		public FREObject call(final FREContext context, FREObject[] args) 
@@ -103,7 +103,7 @@ public class AirCastExtensionContext
 	/**
 	 * TODO Implement this!
 	 */
-	private BaseFunction scan = new BaseFunction() 
+	public BaseFunction scan = new BaseFunction() 
 	{
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -124,7 +124,7 @@ public class AirCastExtensionContext
 	/**
 	 * TODO Implement this!
 	 */
-	private BaseFunction stopScan = new BaseFunction() 
+	public BaseFunction stopScan = new BaseFunction() 
 	{
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -143,7 +143,7 @@ public class AirCastExtensionContext
 	/**
 	 * Connect to a Chromecast device
 	 */
-	private BaseFunction connectToDevice = new BaseFunction() 
+	public BaseFunction connectToDevice = new BaseFunction() 
 	{
 		@Override 
 		public FREObject call(final FREContext context, FREObject[] args) 
@@ -272,7 +272,7 @@ public class AirCastExtensionContext
 	/**
 	 * Disconnect from Chromecast device
 	 */
-	private BaseFunction disconnectFromDevice = new BaseFunction() 
+	public BaseFunction disconnectFromDevice = new BaseFunction() 
 	{
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -285,7 +285,7 @@ public class AirCastExtensionContext
 	/**
 	 * Load media on the connected Chromecast device
 	 */
-	private BaseFunction loadMedia = new BaseFunction() 
+	public BaseFunction loadMedia = new BaseFunction() 
 	{
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -353,7 +353,7 @@ public class AirCastExtensionContext
 	/**
 	 * Are we currently connected to a Chromecast device?
 	 */
-	private BaseFunction isConnected = new BaseFunction() 
+	public BaseFunction isConnected = new BaseFunction() 
 	{
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -372,7 +372,7 @@ public class AirCastExtensionContext
 	/**
 	 * TODO Implement this
 	 */
-	private BaseFunction isPlayingMedia = new BaseFunction() 
+	public BaseFunction isPlayingMedia = new BaseFunction() 
 	{ 
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -384,7 +384,7 @@ public class AirCastExtensionContext
 	/**
 	 * Play on the current media in the current session
 	 */
-	private BaseFunction playCast = new BaseFunction()
+	public BaseFunction playCast = new BaseFunction()
 	{ 
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -401,7 +401,7 @@ public class AirCastExtensionContext
 	/**
 	 * Pause on the current media in the current session
 	 */
-	private BaseFunction pauseCast = new BaseFunction() 
+	public BaseFunction pauseCast = new BaseFunction() 
 	{ 
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -418,11 +418,12 @@ public class AirCastExtensionContext
 	/**
 	 * TODO Implement this
 	 */
-	private BaseFunction updateStatsFromDevice = new BaseFunction() 
+	public BaseFunction updateStatsFromDevice = new BaseFunction() 
 	{ 
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
 		{
+			dispatchStateChange();
 			return null;
 		}		
 	};
@@ -430,7 +431,7 @@ public class AirCastExtensionContext
 	/**
 	 * Seeks the current media in the current session
 	 */
-	private BaseFunction seek = new BaseFunction()
+	public BaseFunction seek = new BaseFunction()
 	{ 
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -450,7 +451,7 @@ public class AirCastExtensionContext
 	/**
 	 * Stop the currently playing media
 	 */
-	private BaseFunction stopCast = new BaseFunction() 
+	public BaseFunction stopCast = new BaseFunction() 
 	{ 
 		@Override public FREObject call(FREContext context, FREObject[] args) 
 		{
@@ -466,7 +467,7 @@ public class AirCastExtensionContext
 	/**
 	 * Set volume on device
 	 */
-	private BaseFunction setVolume = new BaseFunction() 
+	public BaseFunction setVolume = new BaseFunction() 
 	{ 
 		@Override public FREObject call(FREContext context, FREObject[] args) 
 		{
@@ -482,7 +483,7 @@ public class AirCastExtensionContext
 	/**
 	 * Mute the device
 	 */
-	private BaseFunction setMuted = new BaseFunction() 
+	public BaseFunction setMuted = new BaseFunction() 
 	{ 
 		@Override public FREObject call(FREContext context, FREObject[] args) 
 		{
@@ -499,7 +500,7 @@ public class AirCastExtensionContext
 	/**
 	 * Send a custom event to the device
 	 */
-	private BaseFunction sendCustomEvent = new BaseFunction() 
+	public BaseFunction sendCustomEvent = new BaseFunction() 
 	{ 
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -512,9 +513,9 @@ public class AirCastExtensionContext
 				currentSession.sendMessage(namespace, message, new ChromecastSessionCallback() 
 				{
 					@Override
-					void onSuccess(Object object) 
+					void onSuccess(Object obj) 
 					{
-						// TODO Success event in AIR
+						dispatchStatus(EVENT_RECEIVED_CUSTOM_EVENT, (JSONObject) obj);
 					}
 					
 					@Override
@@ -532,7 +533,7 @@ public class AirCastExtensionContext
 	/**
 	 * Adds a listener to a specific namespace
 	 */
-	private BaseFunction addMessageListener = new BaseFunction() 
+	public BaseFunction addMessageListener = new BaseFunction() 
 	{ 
 		@Override 
 		public FREObject call(FREContext context, FREObject[] args) 
@@ -548,7 +549,6 @@ public class AirCastExtensionContext
 		}
 	};
 	
-	
 	/*
 	 * INTERNAL FUNCTIONS
 	 */
@@ -562,7 +562,6 @@ public class AirCastExtensionContext
 	@Override
 	public void dispose()
 	{
-		AirCastExtension.context = null;
 		mMediaRouter.removeCallback(mMediaRouterCallback);
 	}
 	
@@ -573,11 +572,11 @@ public class AirCastExtensionContext
 	 */
 	public boolean sessionStop()
 	{
-		if (this.currentSession != null) 
+		if (currentSession != null) 
 		{
-			this.currentSession.kill(stateChangeCallback);
-			this.currentSession = null;
-			this.setLastSessionId("");
+			currentSession.kill(stateChangeCallback);
+			currentSession = null;
+			setLastSessionId("");
 		}
 		
 		return true;

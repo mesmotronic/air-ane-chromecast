@@ -8,59 +8,54 @@ package com.mesmotronic.ane.aircast
 	import flash.events.EventDispatcher;
 	import flash.events.StatusEvent;
 	import flash.external.ExtensionContext;
-	import flash.system.Capabilities;
-
+	
 	public class AirCast extends EventDispatcher 
 	{
-		private static const EXTENSION_ID:String = "com.mesmotronic.ane.aircast";
-		
 		private static var _instance:AirCast;
 		
 		public static function get isSupported():Boolean
 		{
-			return Capabilities.manufacturer.indexOf("iOS") > -1
-				|| Capabilities.manufacturer.indexOf("Android") > -1;
+			return !!instance.context;
 		}
 		
 		public static function get instance():AirCast
 		{
 			if (!_instance)
 			{
-				_instance = new AirCast();
+				_instance = new AirCast(new AirCastSingleton());
 			}
 			
 			return _instance;
 		}
 		
-		public var logEnabled:Boolean = false;
+		public var logEnabled:Boolean = true;
+		
+		protected var context:ExtensionContext;
 		
 		private var _connectedDevice:AirCastDevice;
-		private var _context:ExtensionContext;
 		
-		public function AirCast()
+		public function AirCast(singleton:AirCastSingleton)
 		{
-			if (!_instance)
+			if (!singleton)
 			{
-				_context = ExtensionContext.createExtensionContext(EXTENSION_ID, null);
-				
-				if (!_context)
-				{
-					log("ERROR - Extension context is null. Please check if extension.xml is setup correctly.");
-					return;
-				}
-				
-				_context.addEventListener(StatusEvent.STATUS, onStatus);
-				_instance = this;
+				throw new Error('This is a singleton');
+			}
+			
+			context = ExtensionContext.createExtensionContext('com.mesmotronic.ane.aircast', '');
+			
+			if (context)
+			{
+				context.addEventListener(StatusEvent.STATUS, onStatus);
 			}
 			else
 			{
-				throw Error("This is a singleton, do not call the constructor directly.");
+				log('ERROR: context is null');
 			}
 		}
 		
 		public function get connectedDevice():AirCastDevice 
 		{
-			return this._connectedDevice; 
+			return _connectedDevice; 
 		}
 
 		/** 
@@ -72,8 +67,9 @@ package com.mesmotronic.ane.aircast
 		public function init(appID:String='CC1AD845'):void
 		{
 			if (!isSupported) return;
-			log( "initializing AirCast Extension with appID "+appID );
-			_context.call('initNE', appID);
+			
+			log("initializing AirCast Extension with app ID "+appID);
+			context.call('initNE', appID);
 		}
 		
 		/** 
@@ -83,7 +79,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return;
 			log( "initiating scan" );
-			_context.call('scan') ;
+			context.call('scan') ;
 		}
 		
 		/** 
@@ -93,7 +89,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return;
 			log( "stopping scan" );
-			_context.call('stopScan') ;
+			context.call('stopScan') ;
 		}
 
 		/** 
@@ -108,7 +104,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return false;
 			log( "connecting to device "+deviceID );
-			return _context.call('connectToDevice', deviceID) ;
+			return context.call('connectToDevice', deviceID) ;
 		}
 
 		/** Ask the receiver to gracefully disconnect this sender
@@ -119,7 +115,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return;
 			log( "disconnecting from device" );
-			_context.call('disconnectFromDevice') ;
+			context.call('disconnectFromDevice') ;
 		}
 
 		/** Load a media on the device with supplied media metadata. */
@@ -134,21 +130,21 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return false;
 			log( "loading media at url "+url );
-			return _context.call('loadMedia', url, thumbnailURL, title, desc, mimeType, startTime, autoPlay );
+			return context.call('loadMedia', url, thumbnailURL, title, desc, mimeType, startTime, autoPlay );
 		}
 
 		/** Returns true if connected to a Chromecast device. */
 		public function get isConnected():Boolean
 		{
 			if (!isSupported) return false;
-			return _context.call('isConnected');
+			return context.call('isConnected');
 		}
 
 		/** Returns true if media is loaded on the device. */
 		public function get isPlaying():Boolean
 		{
 			if (!isSupported) return false;
-			return _context.call('isPlayingMedia');
+			return context.call('isPlayingMedia');
 		}
 
 		/** set the state of the player to play */
@@ -156,7 +152,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return;
 			log( "play" );
-			_context.call('playCast');
+			context.call('playCast');
 		}
 
 		/** set the state of the player to pause */
@@ -164,7 +160,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return;
 			log( "pause" );
-			_context.call('pauseCast');
+			context.call('pauseCast');
 		}
 		
 		/** Stops the media playing on the Chromecast device. */
@@ -172,7 +168,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return;
 			log( "stop" );
-			_context.call('stopCast');
+			context.call('stopCast');
 		}
 
 		/** Request an update of media playback stats from the Chromecast device. */
@@ -205,7 +201,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return;
 			log( "seek "+pos );
-			_context.call('seek', pos);
+			context.call('seek', pos);
 		}
 
 		/** Stops the media playing on the Chromecast device. */
@@ -213,7 +209,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return;
 			log( "setting volume to "+value );
-			_context.call('setVolume', value);
+			context.call('setVolume', value);
 		}
 		
 		/** Stops the media playing on the Chromecast device. */
@@ -221,7 +217,7 @@ package com.mesmotronic.ane.aircast
 		{
 			if (!isSupported) return;
 			log( "sending message with protocol "+protocol );
-			_context.call('sendCustomEvent', message, protocol);
+			context.call('sendCustomEvent', message, protocol);
 		}
 
 		/**
@@ -352,3 +348,5 @@ package com.mesmotronic.ane.aircast
 	}
 
 }
+
+class AirCastSingleton {}

@@ -15,7 +15,6 @@ public class BaseFunction implements FREFunction
 	@Override
 	public FREObject call(FREContext context, FREObject[] args)
 	{
-		AirCastExtension.context = (AirCastExtensionContext)context;
 		return null;
 	}
 	

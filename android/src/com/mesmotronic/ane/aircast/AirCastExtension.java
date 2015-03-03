@@ -1,46 +1,31 @@
 package com.mesmotronic.ane.aircast;
 
-import android.util.Log;
-
 import com.adobe.fre.FREContext;
 import com.adobe.fre.FREExtension;
 
 public class AirCastExtension implements FREExtension
 {
 	public static String TAG = "AirCast";
-	private static Boolean PRINT_LOG = true;
 	
-	public static AirCastExtensionContext context;
-
-	public FREContext createContext(String extId)
+	private static AirCastExtensionContext context;
+	
+	@Override
+	public FREContext createContext(String extId) 
 	{
-		return context = new AirCastExtensionContext();
+		context = new AirCastExtensionContext();
+		return context;
 	}
-
+	
+	@Override
 	public void dispose()
 	{
 		context = null;
 	}
 	
-	public void initialize() {}
-	
-	public static void log(String message)
+	@Override
+	public void initialize()
 	{
-		if (PRINT_LOG) 
-		{
-			Log.d(TAG, message);
-		}
-		
-		if (context != null && message != null) 
-		{
-			context.dispatchStatusEventAsync("LOGGING", message);
-		}
+		// Nothing to do here
 	}
 	
-	public static int getResourceId(String name)
-	{
-		return context != null 
-			? context.getResourceId(name) 
-			: 0;
-	}
 }
