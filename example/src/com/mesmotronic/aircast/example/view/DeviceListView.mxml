@@ -30,7 +30,7 @@
 					return;
 				}
 				
-				airCast.init();
+				airCast.init(/* YOUR_CHROMECAST_ID_GOES_HERE */);
 				airCast.logEnabled = true;
 				
 				DeviceModel.init();
