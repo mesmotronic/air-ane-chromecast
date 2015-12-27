@@ -10,3 +10,5 @@ adt ^
  -platform Android-x86 -C android . ^
  -platform iPhone-ARM -C ios . ^
  -platform default -C default . 
+
+pause

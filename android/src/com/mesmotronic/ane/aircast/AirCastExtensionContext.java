@@ -76,7 +76,7 @@ public class AirCastExtensionContext
 				.addControlCategory(CastMediaControlIntent.categoryForCast(appId))
 				.build();
 			
-			log("initialize AirCast with app ID "+appId);
+			log("Initialize AirCast with app ID "+appId);
 			
 			activity.runOnUiThread(new Runnable() 
 			{
