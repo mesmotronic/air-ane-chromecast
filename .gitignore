@@ -3,4 +3,3 @@ bin-debug/
 bin-release/
 .settings/
 .DS_Store
-/build/android/aircast-jar.jar

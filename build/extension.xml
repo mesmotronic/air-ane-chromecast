@@ -12,22 +12,6 @@
                 <finalizer>AirCastFinalizer</finalizer>
             </applicationDeployment>
         </platform>
-
-        <platform name="Android-ARM"> 
-            <applicationDeployment> 
-                <nativeLibrary>aircast-jar.jar</nativeLibrary> 
-                <initializer>com.mesmotronic.ane.aircast.AirCastExtension</initializer> 
-                <finalizer>com.mesmotronic.ane.aircast.AirCastExtension</finalizer> 
-            </applicationDeployment> 
-        </platform>
-        
-        <platform name="Android-x86"> 
-            <applicationDeployment> 
-                <nativeLibrary>aircast-jar.jar</nativeLibrary> 
-                <initializer>com.mesmotronic.ane.aircast.AirCastExtension</initializer> 
-                <finalizer>com.mesmotronic.ane.aircast.AirCastExtension</finalizer> 
-            </applicationDeployment> 
-        </platform>
         
         <platform name="default"> 
             <applicationDeployment/> 
