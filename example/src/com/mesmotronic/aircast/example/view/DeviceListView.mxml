@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View 
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark"
+	title="Devices"
+	creationComplete="creationCompleteHandler(event)"
+	>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.mesmotronic.ane.aircast.AirCast;
+			import com.mesmotronic.ane.aircast.AirCastDevice;
+			import com.mesmotronic.ane.aircast.events.AirCastDeviceEvent;
+			import com.mesmotronic.ane.aircast.events.AirCastDeviceListEvent;
+			import com.mesmotronic.aircast.example.model.DeviceModel;
+			
+			import mx.events.FlexEvent;
+			
+			import spark.events.IndexChangeEvent;
+			
+			public var airCast:AirCast = AirCast.instance;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				trace(className, AirCast.isSupported);
+				
+				if (!AirCast.isSupported)
+				{
+					currentState = 'error';
+					return;
+				}
+				
+				airCast.init(/* YOUR_CHROMECAST_ID_GOES_HERE */);
+				airCast.logEnabled = true;
+				
+				DeviceModel.init();
+				
+				airCast.addEventListener(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceListChangedHandler);
+				airCast.addEventListener(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, connectHandler);
+				airCast.addEventListener(AirCastDeviceEvent.DID_DISCONNECT, connectHandler);
+				airCast.startScan();
+			}
+			
+			protected function deviceListChangedHandler(event:AirCastDeviceListEvent):void
+			{
+				currentState = 'list';
+				deviceList.selectedIndex = -1;
+			}
+			
+			protected function deviceList_changeHandler(event:IndexChangeEvent):void
+			{
+				var device:AirCastDevice = deviceList.selectedItem as AirCastDevice;
+				
+				if (device)
+				{
+					if (airCast.isConnected)
+					{
+						airCast.disconnectFromDevice();
+					}
+					
+					currentState = 'busy';
+					
+					airCast.connectToDevice(device.deviceID);
+				}
+			}
+			
+			protected function connectHandler(event:AirCastDeviceEvent):void
+			{
+				if (event.type == AirCastDeviceEvent.DID_DISCONNECT)
+				{
+					currentState = 'list';
+					return;
+				}
+				
+				airCast.removeEventListener(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceListChangedHandler);
+				airCast.removeEventListener(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, connectHandler);
+				airCast.removeEventListener(AirCastDeviceEvent.DID_DISCONNECT, connectHandler);
+				airCast.stopScan();
+				
+				navigator.replaceView(VideoListView);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="list" />
+		<s:State name="busy" />
+		<s:State name="error" />
+	</s:states>
+	
+	<s:List
+		id="deviceList"
+		width="100%" height="100%"
+		dataProvider="{DeviceModel.devices}"
+		itemRenderer="spark.components.IconItemRenderer"
+		labelField="friendlyName"
+		change="deviceList_changeHandler(event)"
+		includeIn="list"
+		/>
+	
+	<s:BusyIndicator
+		includeIn="busy"
+		horizontalCenter="0"
+		verticalCenter="0"
+		/>
+	
+	<s:Label 
+		includeIn="error"
+		text="Sorry, Chromecast isn't supported on this device" 
+		horizontalCenter="0"
+		verticalCenter="0"
+		textAlign="center"
+		width="80%"
+		/>
+	
+</s:View>
