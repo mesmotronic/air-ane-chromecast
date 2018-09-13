@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
-<application xmlns="http://ns.adobe.com/air/application/20.0">
+<application xmlns="http://ns.adobe.com/air/application/31.0">
     
 	<id>com.mesmotronic.aircast.example</id>
 	<filename>AirCastExample</filename>
 	<name>AirCast Example</name>
-	<versionNumber>1.0.0</versionNumber>
+	<versionNumber>1.1.0</versionNumber>
 
 	<!-- <description></description> -->
 	<!-- <copyright></copyright> -->

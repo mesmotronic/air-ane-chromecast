@@ -12,7 +12,7 @@ package com.mesmotronic.aircast.example.model
 		
 		public static function init():void
 		{
-			AirCast.instance.addEventListener(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceListChangedHandler);
+			AirCast.airCast.addEventListener(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceListChangedHandler);
 		}
 		
 		private static function deviceListChangedHandler(event:AirCastDeviceListEvent):void

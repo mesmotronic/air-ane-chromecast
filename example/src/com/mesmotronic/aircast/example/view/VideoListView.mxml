@@ -17,10 +17,12 @@
 			
 			import spark.events.IndexChangeEvent;
 			
-			public const MEDIA_BUCKET_URL:String = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/";
+			public const MEDIA_BUCKET_URL:String = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/";
 			public const MEDIA_LIST_URL:String = MEDIA_BUCKET_URL+"videos-enhanced-b.json";
 			
-			public var airCast:AirCast = AirCast.instance;
+			public var airCast:AirCast = AirCast.airCast;
+			
+			[Bindable]
 			public var media:ArrayCollection = new ArrayCollection();
 			
 			protected function creationCompleteHandler(event:FlexEvent):void
@@ -54,8 +56,8 @@
 				
 				if (video)
 				{
-					airCast.loadMedia(video.sources[0], video.thumb, video.title, video.subtitle, 'video/mp4', 0, true);
-					airCast.addEventListener(AirCastMediaEvent.STATUS_CHANGED, airCast_statusChangedHandler);
+					airCast.load(video.sources[0], video.thumb, video.title, video.subtitle, 'video/mp4', 0, true);
+					airCast.addEventListener(AirCastMediaEvent.MEDIA_STATUS_CHANGED, airCast_statusChangedHandler);
 				}
 			}
 			
@@ -68,11 +70,11 @@
 			{
 				trace(className, event.type, event.status);
 				
-				if (event.status && event.status.mediaInformation)
-				{
+//				if (event.status && event.status.mediaInformation)
+//				{
 //					progressSlider.maximum = event.status.mediaInformation.streamDuration;
 //					progressSlider.value = event.status.streamPosition;
-				}
+//				}
 			}
 			
 		]]>

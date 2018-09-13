@@ -1,85 +1,188 @@
 package com.mesmotronic.ane.aircast
 {
-	import com.mesmotronic.ane.aircast.events.AirCastCustomEvent;
 	import com.mesmotronic.ane.aircast.events.AirCastDeviceEvent;
 	import com.mesmotronic.ane.aircast.events.AirCastDeviceListEvent;
 	import com.mesmotronic.ane.aircast.events.AirCastMediaEvent;
+	import com.mesmotronic.ane.aircast.events.AirCastMessageEvent;
 	
+	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.events.StatusEvent;
 	import flash.external.ExtensionContext;
+	import flash.system.Capabilities;
 	
+	[Event(name="deviceConnecting", type="com.mesmotronic.ane.aircast.events.AirCastDeviceEvent")]
+	[Event(name="deviceConnected", type="com.mesmotronic.ane.aircast.events.AirCastDeviceEvent")]
+	[Event(name="deviceDisconnected", type="com.mesmotronic.ane.aircast.events.AirCastDeviceEvent")]
+	[Event(name="deviceScanStarted", type="com.mesmotronic.ane.aircast.events.AirCastDeviceListEvent")]
+	[Event(name="deviceScanStopped", type="com.mesmotronic.ane.aircast.events.AirCastDeviceListEvent")]
+	[Event(name="deviceListChanged", type="com.mesmotronic.ane.aircast.events.AirCastDeviceListEvent")]
+	[Event(name="mediaStatusChanged", type="com.mesmotronic.ane.aircast.events.AirCastMediaEvent")]
+	
+	[Bindable]
 	public class AirCast extends EventDispatcher 
 	{
-		private static var _instance:AirCast;
+		// Static
+		
+		public static const NS_PREFIX:String = 'urn:x-cast:';
+		
+		private static var _airCast:AirCast;
 		
 		public static function get isSupported():Boolean
 		{
-			return !!instance.context;
+			return !!airCast.context;
 		}
 		
-		public static function get instance():AirCast
+		public static function get airCast():AirCast
 		{
-			if (!_instance)
+			if (!_airCast)
 			{
-				_instance = new AirCast(new AirCastSingleton());
+				_airCast = new AirCast(new Singleton());
 			}
 			
-			return _instance;
+			return _airCast;
 		}
 		
-		public var logEnabled:Boolean = true;
+		// Local
+		
+		public var defaultNS:String = '';
+		public var logEnabled:Boolean = false;
 		
 		protected var context:ExtensionContext;
+		protected var isInitialized:Boolean;
 		
+		private var _isScanning:Boolean = false;
+		private var _isConnecting:Boolean = false;
+		private var _deviceList:Vector.<AirCastDevice> = new Vector.<AirCastDevice>;
 		private var _connectedDevice:AirCastDevice;
+		private var _status:String = '';
+		private var _mediaStatus:AirCastMediaStatus;
 		
-		public function AirCast(singleton:AirCastSingleton)
+		public function AirCast(singleton:Singleton)
 		{
-			if (!singleton)
-			{
-				throw new Error('This is a singleton');
-			}
+			if (!singleton) throw new Error('AirCast is a singleton!');
 			
-			context = ExtensionContext.createExtensionContext('com.mesmotronic.ane.aircast', '');
+			var version:String = Capabilities.version.substr(0,3);
 			
-			if (context)
+			switch (version)
 			{
-				context.addEventListener(StatusEvent.STATUS, onStatus);
-			}
-			else
-			{
-				log('ERROR: context is null');
+				case 'AND':
+				case 'IOS':
+				{
+					context = ExtensionContext.createExtensionContext('com.mesmotronic.ane.aircast', '');
+					
+					if (context)
+					{
+						context.addEventListener(StatusEvent.STATUS, statusHandler);
+					}
+					
+					break;
+				}
 			}
 		}
 		
+		[Bindable(event="change")]
+		public function get isConnecting():Boolean
+		{
+			return _isConnecting;
+		}
+		
+		/** 
+		 * Returns true if connected to a receiver 
+		 */
+		[Bindable(event="change")]
+		public function get isConnected():Boolean
+		{
+			if (!isSupported) return false;
+			return context.call('isConnected');
+		}
+		
+		/** 
+		 * Returns true if media is loaded on the receiver
+		 */
+		[Bindable(event="mediaStatusChanged")]
+		public function get isPlaying():Boolean
+		{
+			if (!isSupported) return false;
+			return context.call('isPlayingMedia');
+		}
+		
+		[Bindable(event="change")]
+		public function get isScanning():Boolean
+		{
+			return _isScanning;
+		}
+		
+		/**
+		 * The most recently received device list
+		 */
+		[Bindable(event="change")]
+		public function get deviceList():Vector.<AirCastDevice> 
+		{
+			return _deviceList; 
+		}
+		
+		/**
+		 * The receiver currently connected to your app
+		 */
+		[Bindable(event="change")]
 		public function get connectedDevice():AirCastDevice 
 		{
 			return _connectedDevice; 
 		}
-
-		/** 
-		 * initialize the cast sender with the receiver app ID.
-		 * 
-		 * <p>If no app ID is set, we use the default Chromecast media 
-		 * player application</p>  
+		
+		/**
+		 * The most recently received device status
 		 */
-		public function init(appID:String='CC1AD845'):void
+		[Bindable(event="mediaStatusChanged")]
+		public function get status():String
 		{
-			if (!isSupported) return;
-			
-			log("initializing AirCast Extension with app ID "+appID);
-			context.call('initNE', appID);
+			return _status;
+		}
+		
+		/**
+		 * The most recently received media status
+		 */
+		[Bindable(event="mediaStatusChanged")]
+		public function get mediaStatus():AirCastMediaStatus
+		{
+			return _mediaStatus;
 		}
 		
 		/** 
-		 * Start scanning for Chromecast devices on the network. 
+		 * initialize the cast sender with the receiver app ID: 
+		 * 
+		 * <p>If no app ID is set, we use the default Chromecast receiver app</p>  
+		 */
+		public function init(appId:String='CC1AD845', customNS:String=''):void
+		{
+			if (!isSupported || isInitialized) return;
+			
+			log("AirCast initialized using app ID "+appId);
+			context.call('initNE', appId);
+			
+			defaultNS = customNS;
+			isInitialized = true;
+			
+			// Both ANEs now start scanning automatically
+			_isScanning = true;
+		}
+		
+		/** 
+		 * Start scanning for receivers on the network. 
 		 */
 		public function startScan():void
 		{
 			if (!isSupported) return;
-			log( "initiating scan" );
-			context.call('scan') ;
+			
+			log("Scanning for devices...");
+			
+			_isScanning = true;
+			
+			dispatchEvent(new AirCastDeviceListEvent(AirCastDeviceListEvent.DEVICE_SCAN_STARTED));
+			dispatchEvent(new Event(Event.CHANGE));
+			
+			context.call('scan');
 		}
 		
 		/** 
@@ -88,265 +191,330 @@ package com.mesmotronic.ane.aircast
 		public function stopScan():void
 		{
 			if (!isSupported) return;
-			log( "stopping scan" );
-			context.call('stopScan') ;
+			
+			log("Stopping scanning for devices");
+			
+			_isScanning = false;
+			
+			dispatchEvent(new AirCastDeviceListEvent(AirCastDeviceListEvent.DEVICE_SCAN_STOPPED));
+			dispatchEvent(new Event(Event.CHANGE));
+			
+			context.call('stopScan');
 		}
-
+		
 		/** 
 		 * Search for a device with given ID and connect to it
 		 * 
+		 * A return of true does not mean we connected to the receiver:
+		 * listen for AirCastDeviceEvent.DEVICE_CONNECTED to know
+		 * when we successfully connected to a receiver
+		 *  
 		 * @returns false if the device could not be found, true otherwise
-		 * @note	a return of true does not mean we connected to the receiver
-		 *			listen to AirCastDeviceEvent.DID_CONNECT_TO_DEVICE to know
-		 *			when we successfully connected to a receiver
 		 */
-		public function connectToDevice( deviceID:String ):Boolean
+		public function connect(deviceId:String):Boolean
 		{
-			if (!isSupported) return false;
-			log( "connecting to device "+deviceID );
-			return context.call('connectToDevice', deviceID) ;
+			if (!isSupported || !deviceId) return false;
+			
+			_isConnecting = context.call('connectToDevice', deviceId);
+			
+			log(_isConnecting ? "Connecting to device "+deviceId : "Unable to connect to device "+deviceId);
+			
+			if (_isConnecting)
+			{
+				dispatchEvent(new AirCastDeviceEvent(AirCastDeviceEvent.DEVICE_CONNECTING));
+				dispatchEvent(new Event(Event.CHANGE));
+			}
+			
+			return _isConnecting;
 		}
 
-		/** Ask the receiver to gracefully disconnect this sender
-		 *	listen to AirCastDeviceEvent.DID_DISCONNECT to know
-		 *	when we successfully disconnected from the receiver
+		/** 
+		 * Disconnect your app from the receiver
+		 * 
+		 * <p>The AirCastDeviceEvent.DEVICE_DISCONNECTED event is dispatched 
+		 * when disconnection is complete</p>
 		 */
-		public function disconnectFromDevice():void
+		public function disconnect():void
 		{
 			if (!isSupported) return;
-			log( "disconnecting from device" );
+			
+			log("Disconnecting from device");
 			context.call('disconnectFromDevice') ;
 		}
-
-		/** Load a media on the device with supplied media metadata. */
-		public function loadMedia(	url:String,
-									thumbnailURL:String,
-									title:String,
-									desc:String,
-									mimeType:String,
-									startTime:Number=0.0,
-									autoPlay:Boolean=true
-								):Boolean
-		{
-			if (!isSupported) return false;
-			log( "loading media at url "+url );
-			return context.call('loadMedia', url, thumbnailURL, title, desc, mimeType, startTime, autoPlay );
-		}
-
-		/** Returns true if connected to a Chromecast device. */
-		public function get isConnected():Boolean
-		{
-			if (!isSupported) return false;
-			return context.call('isConnected');
-		}
-
-		/** Returns true if media is loaded on the device. */
-		public function get isPlaying():Boolean
-		{
-			if (!isSupported) return false;
-			return context.call('isPlayingMedia');
-		}
-
-		/** set the state of the player to play */
-		public function play():void
-		{
-			if (!isSupported) return;
-			log( "play" );
-			context.call('playCast');
-		}
-
-		/** set the state of the player to pause */
-		public function pause():void
-		{
-			if (!isSupported) return;
-			log( "pause" );
-			context.call('pauseCast');
-		}
 		
-		/** Stops the media playing on the Chromecast device. */
-		public function stop():void
+		/** 
+		 * Load media on the device supplied metadata 
+		 */
+		public function load(url:String, thumbnailUrl:String='', title:String='', 
+			subtitle:String='', contentType:String='', startTime:Number=0.0, autoPlay:Boolean=true):Boolean
 		{
-			if (!isSupported) return;
-			log( "stop" );
-			context.call('stopCast');
-		}
-
-		/** Request an update of media playback stats from the Chromecast device. */
-		public function updateStatsFromDevice():void
-		{
-
-			/*var statsObject = _context.call('updateStatsFromDevice');
-
-			var mediaStatus:AirCastMediaStatus = new AirCastMediaStatus(	mediaSessionID:int,
-																			playerState:int,
-																			idleReason:int,
-																			playbackRate:Number,
-																			mediaInformation:AirCastMediaInfo,
-																			statsObject.streamPosition:Number,
-																			volume:Number,
-																			isMuted:Boolean,
-																			customData:Object
-																		);
-
-			FRESetObjectProperty(ret, (const uint8_t*)"streamPosition", streamPosition, ex);
-			FRESetObjectProperty(ret, (const uint8_t*)"streamDuration", streamDuration, ex);
-			FRESetObjectProperty(ret, (const uint8_t*)"playerState", playerState, ex);
-			FRESetObjectProperty(ret, (const uint8_t*)"mediaInformation", mediaInformation, ex);
-			*/
+			if (!isSupported) return false;
 			
-		}
-
-		/** Sets the position of the playback on the Chromecast device. */
-		public function seek( pos:Number ):void
-		{
-			if (!isSupported) return;
-			log( "seek "+pos );
-			context.call('seek', pos);
-		}
-
-		/** Stops the media playing on the Chromecast device. */
-		public function setVolume(value:Number):void
-		{
-			if (!isSupported) return;
-			log( "setting volume to "+value );
-			context.call('setVolume', value);
-		}
-		
-		/** Stops the media playing on the Chromecast device. */
-		public function sendCustomEvent(protocol:String, message:String):void
-		{
-			if (!isSupported) return;
-			log( "sending message with protocol "+protocol );
-			context.call('sendCustomEvent', message, protocol);
+			log("Loading "+url);
+			return context.call('loadMedia', url, thumbnailUrl, title, subtitle, contentType, startTime, autoPlay);
 		}
 
 		/**
-		 * Events
+		 * Play the current media on the receiver 
 		 */
-		private function onStatus(event:StatusEvent):void
+		public function play():void
 		{
-			var now:Date = new Date();
-			var callback:Function;
-			var jsonObject:Object;
+			if (!isSupported) return;
+			
+			log("Play");
+			context.call('playCast');
+		}
+
+		/**
+		 * Pause the current media on the receiver 
+		 */
+		public function pause():void
+		{
+			if (!isSupported) return;
+			
+			log("Pause");
+			context.call('pauseCast');
+		}
+		
+		/**
+		 * Stop the current media on the receiver 
+		 */
+		public function stop():void
+		{
+			if (!isSupported) return;
+			
+			log("Stop");
+			context.call('stopCast');
+		}
+		
+		/** 
+		 * Request an update of media playback status from the receiver
+		 * 
+		 * TODO Should this request an update? Or return an update? :-/
+		 * TODO Has this been implemented for iOS? 
+		 */
+		public function updateMediaStatus():AirCastMediaStatus
+		{
+			try
+			{
+				var json:String = context.call('updateStatsFromDevice') as String;
+				return AirCastMediaStatus.fromJSON(JSON.parse(json).mediaStatus);
+			}
+			catch (e:Error)
+			{
+				log("Unable to update media status:", e.message);
+			}
+			
+			return null;
+		}
+		
+		/** 
+		 * Sets the position of the playback on the receiver
+		 */
+		public function seek(position:Number):void
+		{
+			if (!isSupported) return;
+			
+			log("seek "+position);
+			context.call('seek', position);
+		}
+		
+		/** 
+		 * Sets the volume on the receiver
+		 */
+		public function setVolume(value:Number):void
+		{
+			if (!isSupported) return;
+			
+			log("setting volume to "+value);
+			context.call('setVolume', value);
+		}
+		
+		/** 
+		 * Send a custom message to the receiver
+		 * 
+		 * @param	message		The message to send 
+		 * @param	ns 			The namespace to use for sending the message, e.g. urn:x-cast:com.example.cast,
+		 * 						if it's not specified, it uses the value in defaultNS (if specified) 
+		 */
+		public function sendMessage(message:*, ns:String=''):void
+		{
+			if (!isSupported) return;
+			
+			ns || (ns = defaultNS);
+			
+			if (ns.indexOf(NS_PREFIX) != 0)
+			{
+				throw new Error('Namespaces must begin with "'+NS_PREFIX+'"');
+			}
+			
+			if (!(message is String))
+			{
+				try
+				{
+					message = JSON.stringify(message);
+				}
+				catch(e:Error)
+				{
+					throw new Error('Invalid message');
+				}
+			}
+			
+			context.call('sendCustomEvent', message, ns);
+		}
+		
+		/**
+		 * Events from the ANE
+		 */
+		protected function statusHandler(event:StatusEvent):void
+		{
+			var jsonData:Object;
 			
 			switch (event.code)
 			{
 				case "AirCast.deviceListChanged":
 				{
-					log("received deviceListChanged");
+					log(event.code+": "+event.level);
 					
-					var deviceList:Vector.<AirCastDevice> = new Vector.<AirCastDevice>();
+					_deviceList = new Vector.<AirCastDevice>();
 					
 					try
 					{
-						jsonObject = JSON.parse(event.level) as Array;
+						jsonData = JSON.parse(event.level) as Array;
 						
-						for each(var deviceJsonObject:Object in (jsonObject as Array))
+						for each (var device:Object in jsonData)
 						{
-							deviceList.push(AirCastDevice.fromJSONObject(deviceJsonObject));
+							_deviceList.push(AirCastDevice.fromJSON(device));
 						}
 					}
-					catch (e:*) 
+					catch (e:Error) 
 					{
-						log(e.toString());
+						log(e.message);
 					}
 					
-					dispatchEvent(new AirCastDeviceListEvent(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceList));
+					dispatchEvent(new AirCastDeviceListEvent(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, _deviceList.slice()));
 					break;
 				}
 					
 				case "AirCast.didConnectToDevice":
 				{
-					log("received deviceListChanged");
+					log(event.code+": "+event.level);
+					
+					_isConnecting = false;
 					
 					try
 					{
-						jsonObject = JSON.parse(event.level);
+						jsonData = JSON.parse(event.level);
 						
-						var device:AirCastDevice = AirCastDevice.fromJSONObject(jsonObject);
-						this._connectedDevice = device;
+						_connectedDevice = AirCastDevice.fromJSON(jsonData);
 						
-						dispatchEvent(new AirCastDeviceEvent(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, device));
+						// Workaround to initialise message channel on iOS implementation
+						if (defaultNS)
+						{
+							sendMessage({type:'PING'});
+						}
+						
+						dispatchEvent(new AirCastDeviceEvent(AirCastDeviceEvent.DEVICE_CONNECTED, _connectedDevice));
 					}
-					catch (e:*) 
+					catch (e:Error) 
 					{
-						log(e.toString());
+						log(e.message);
 					}
 					
+					dispatchEvent(new Event(Event.CHANGE));
 					break;
 				}
-					
+				
 				case "AirCast.didDisconnect":
 				{
-					log("received didDisconnect");
+					log(event.code+": "+event.level);
 					
-					if (connectedDevice)
+					var disconnectedDevice:AirCastDevice = connectedDevice;
+					
+					_connectedDevice = null;
+					_isConnecting = false;
+					_status = '';
+					_mediaStatus = null;
+					
+					if (disconnectedDevice)
 					{
-						var d:AirCastDevice = connectedDevice;
-						_connectedDevice = null;
-						dispatchEvent( new AirCastDeviceEvent(AirCastDeviceEvent.DID_DISCONNECT, d) );
+						dispatchEvent(new AirCastDeviceEvent(AirCastDeviceEvent.DEVICE_DISCONNECTED, disconnectedDevice));
 					}
+					
+					dispatchEvent(new Event(Event.CHANGE));						
 					
 					break;
 				}
 				
 				case "AirCast.didReceiveMediaStateChange":
 				{
-					log("received didReceiveMediaStateChange", event.level);
+					log(event.code+": "+event.level);
 					
 					try
 					{
-						jsonObject = JSON.parse(event.level);
+						jsonData = JSON.parse(event.level);
 						
-						var status:AirCastMediaStatus = jsonObject.status != null 
-							? AirCastMediaStatus.fromJSONObject(jsonObject.mediaStatus)
+						// e.g. "Ready To Cast"
+						var status:String = jsonData.status || '';
+						
+						// Information about the current state of the loaded media (if any)
+						var mediaStatus:AirCastMediaStatus = jsonData.mediaStatus
+							? AirCastMediaStatus.fromJSON(jsonData.mediaStatus)
 							: null;
 						
-						dispatchEvent( new AirCastMediaEvent(AirCastMediaEvent.STATUS_CHANGED, status) );
+						_status = status;
+						_mediaStatus = mediaStatus;
+						
+						dispatchEvent(new AirCastMediaEvent(AirCastMediaEvent.MEDIA_STATUS_CHANGED, status, mediaStatus));
 					}
-					catch (e:*) 
+					catch (e:Error) 
 					{
-						log(e.toString());
-					}
-					
-					break;
-				}
-					
-				case "AirCast.didReceiveCustomEvent":
-				{
-					log("received didReceiveCustomEvent", event.level);
-					
-					try
-					{
-						jsonObject = JSON.parse(event.level);
-						dispatchEvent( new AirCastCustomEvent(jsonObject.protocol, jsonObject.event) );
-					}
-					catch (e:*) 
-					{
-						log(e.toString());
+						log(e.message);
 					}
 					
 					break;
 				}
 				
-				case "LOGGING": // Simple log message
+				case "AirCast.didReceiveCustomEvent":
+				{
+					log(event.code+": "+event.level);
+					
+					try
+					{
+						jsonData = JSON.parse(event.level);
+						dispatchEvent(new AirCastMessageEvent(jsonData.protocol, jsonData.event));
+					}
+					catch (e:Error) 
+					{
+						log(e.message);
+					}
+					
+					break;
+				}
+				
+				case "LOGGING":
 				{
 					log(event.level);
+					break;
+				}
+					
+				default:
+				{
+					log("Unknown status received:", event.code);
 					break;
 				}
 			}
 		}
 		
-		private function log(...params):void
+		protected function log(...messages):void
 		{
-			if (logEnabled) 
+			if (logEnabled)
 			{
-				trace.apply(null, params);
+				messages.unshift(this);
+				trace.apply(null, messages);
 			}
 		}
-
 	}
-
 }
 
-class AirCastSingleton {}
+class Singleton {}

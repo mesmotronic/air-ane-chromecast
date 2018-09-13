@@ -1,7 +1,8 @@
-package com.mesmotronic.ane.aircast{
-
-	public class AirCastDevice {
-
+package com.mesmotronic.ane.aircast
+{
+	[Bindable]
+	public class AirCastDevice 
+	{
 		private var _ipAddress:String;
 		private var _servicePort:uint;
 		private var _deviceID:String;
@@ -35,7 +36,7 @@ package com.mesmotronic.ane.aircast{
 		public function get modelName():String { return this._modelName; }
 		public function get icons():Vector.<AirCastImage> { return this._icons.slice(); }
 
-		public static function fromJSONObject(jsonObject:Object):AirCastDevice
+		public static function fromJSON(jsonObject:Object):AirCastDevice
 		{
 			var icons:Vector.<AirCastImage> = new Vector.<AirCastImage>();
 			
@@ -43,7 +44,7 @@ package com.mesmotronic.ane.aircast{
 			{
 				for each (var iconJsonObject:Object in (jsonObject.icons as Array))
 				{
-					icons.push(AirCastImage.fromJSONObject(iconJsonObject));
+					icons.push(AirCastImage.fromJSON(iconJsonObject));
 				}
 			}
 			

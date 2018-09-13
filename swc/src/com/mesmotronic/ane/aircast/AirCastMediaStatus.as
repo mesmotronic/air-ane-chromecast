@@ -1,10 +1,11 @@
-package com.mesmotronic.ane.aircast{
-
+package com.mesmotronic.ane.aircast
+{
 	/**
 	 * A class that holds status information about some media.
 	 */
-	public class AirCastMediaStatus {
-
+	[Bindable]
+	public class AirCastMediaStatus 
+	{
 		/** Constant indicating unknown player state. */
 		public static const MEDIA_PLAYER_STATE_UNKNOWN:int = 0;
 		/** Constant indicating that the media player is idle. */
@@ -37,16 +38,16 @@ package com.mesmotronic.ane.aircast{
 		private var _isMuted:Boolean;
 		private var _customData:Object;
 
-		public function AirCastMediaStatus( 	mediaSessionID:int,
-												playerState:int,
-												idleReason:int,
-												playbackRate:Number,
-												mediaInformation:AirCastMediaInfo,
-												streamPosition:Number,
-												volume:Number,
-												isMuted:Boolean,
-												customData:Object
-											)
+		public function AirCastMediaStatus(	mediaSessionID:int,
+											playerState:int,
+											idleReason:int,
+											playbackRate:Number,
+											mediaInformation:AirCastMediaInfo,
+											streamPosition:Number,
+											volume:Number,
+											isMuted:Boolean,
+											customData:Object
+										)
 		{
 			_mediaSessionID = mediaSessionID;
 			_playerState = playerState;
@@ -60,41 +61,41 @@ package com.mesmotronic.ane.aircast{
 		}
 
 		/** The media session ID for this item. */
-		public function get mediaSessionID():int { return this._mediaSessionID; }
+		public function get mediaSessionID():int { return _mediaSessionID; }
 		/** The current player state. */
-		public function get playerState():int { return this._playerState; }
+		public function get playerState():int { return _playerState; }
 		/** The current idle reason. This value is only meaningful if the player state is MEDIA_PLAYER_STATE_IDLE. */
-		public function get idleReason():int { return this._idleReason; }
+		public function get idleReason():int { return _idleReason; }
 		/**
 		 * Gets the current stream playback rate. This will be negative if the stream is seeking
 		 * backwards, 0 if the stream is paused, 1 if the stream is playing normally, and some other
 		 * postive value if the stream is seeking forwards.
 		 */
-		public function get playbackRate():Number { return this._playbackRate; }
+		public function get playbackRate():Number { return _playbackRate; }
 		/** The GCKMediaInformation for this item. */
-		public function get mediaInformation():AirCastMediaInfo { return this._mediaInformation; }
+		public function get mediaInformation():AirCastMediaInfo { return _mediaInformation; }
 		/** The current stream position, as an NSTimeInterval from the start of the stream. */
-		public function get streamPosition():Number { return this._streamPosition; }
+		public function get streamPosition():Number { return _streamPosition; }
 		/** The stream's volume. */
-		public function get volume():Number { return this._volume; }
+		public function get volume():Number { return _volume; }
 		/** The stream's mute state. */
-		public function get isMuted():Boolean { return this._isMuted; }
+		public function get isMuted():Boolean { return _isMuted; }
 		/** Any custom data that is associated with the media item. */
-		public function get customData():Object { return this._customData; }
+		public function get customData():Object { return _customData; }
 
-		public static function fromJSONObject(jsonObject:Object):AirCastMediaStatus
+		public static function fromJSON(jsonObject:Object):AirCastMediaStatus
 		{
 			return new AirCastMediaStatus
 			(
-				jsonObject.mediaSessionID,
-				jsonObject.playerState,
-				jsonObject.idleReason,
-				jsonObject.playbackRate,
-				AirCastMediaInfo.fromJSONObject(jsonObject.mediaInformation),
-				jsonObject.streamPosition,
-				jsonObject.volume,
-				jsonObject.isMuted,
-				jsonObject.customData
+				jsonObject.mediaSessionID || 0,
+				jsonObject.playerState || MEDIA_PLAYER_STATE_UNKNOWN,
+				jsonObject.idleReason || MEDIA_PLAYER_IDLE_REASON_NONE,
+				jsonObject.playbackRate || 1,
+				AirCastMediaInfo.fromJSON(jsonObject.mediaInformation || {}),
+				jsonObject.streamPosition || 0,
+				jsonObject.volume || 1,
+				jsonObject.isMuted || false,
+				jsonObject.customData || {}
 			);
 		}
 

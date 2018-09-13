@@ -1,26 +1,32 @@
-package com.mesmotronic.ane.aircast.events {
+package com.mesmotronic.ane.aircast.events 
+{	
+	import com.mesmotronic.ane.aircast.AirCastMediaStatus;
 	
 	import flash.events.Event;
+	
+	public class AirCastMediaEvent extends Event 
+	{
+		public static const MEDIA_STATUS_CHANGED:String = "mediaStatusChanged";
 
-	import com.mesmotronic.ane.aircast.AirCastMediaStatus;
-
-	public class AirCastMediaEvent extends Event {
-
-		public static const STATUS_CHANGED:String = "AirCastDeviceEvent.STATUS_CHANGED";
-
-		private var _status:AirCastMediaStatus;
+		private var _status:String;
+		private var _mediaStatus:AirCastMediaStatus;
 		
-		public function get status():AirCastMediaStatus { return this._status; }
-
-		public function AirCastMediaEvent( type:String, status:AirCastMediaStatus )
+		public function AirCastMediaEvent(type:String, status:String, mediaStatus:AirCastMediaStatus=null)
 		{
-
 			super(type);
-
-			this._status = status;
-
+			
+			_status = status;
+			_mediaStatus = mediaStatus;
 		}
-
+		
+		public function get status():String 
+		{
+			return _status; 
+		}
+		
+		public function get mediaStatus():AirCastMediaStatus 
+		{
+			return _mediaStatus; 
+		}
 	}
-
 }

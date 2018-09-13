@@ -18,7 +18,7 @@
 			
 			import spark.events.IndexChangeEvent;
 			
-			public var airCast:AirCast = AirCast.instance;
+			public var airCast:AirCast = AirCast.airCast;
 			
 			protected function creationCompleteHandler(event:FlexEvent):void
 			{
@@ -36,8 +36,8 @@
 				DeviceModel.init();
 				
 				airCast.addEventListener(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceListChangedHandler);
-				airCast.addEventListener(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, connectHandler);
-				airCast.addEventListener(AirCastDeviceEvent.DID_DISCONNECT, connectHandler);
+				airCast.addEventListener(AirCastDeviceEvent.DEVICE_CONNECTED, connectHandler);
+				airCast.addEventListener(AirCastDeviceEvent.DEVICE_DISCONNECTED, connectHandler);
 				airCast.startScan();
 			}
 			
@@ -55,26 +55,26 @@
 				{
 					if (airCast.isConnected)
 					{
-						airCast.disconnectFromDevice();
+						airCast.disconnect();
 					}
 					
 					currentState = 'busy';
 					
-					airCast.connectToDevice(device.deviceID);
+					airCast.connect(device.deviceID);
 				}
 			}
 			
 			protected function connectHandler(event:AirCastDeviceEvent):void
 			{
-				if (event.type == AirCastDeviceEvent.DID_DISCONNECT)
+				if (event.type == AirCastDeviceEvent.DEVICE_DISCONNECTED)
 				{
 					currentState = 'list';
 					return;
 				}
 				
 				airCast.removeEventListener(AirCastDeviceListEvent.DEVICE_LIST_CHANGED, deviceListChangedHandler);
-				airCast.removeEventListener(AirCastDeviceEvent.DID_CONNECT_TO_DEVICE, connectHandler);
-				airCast.removeEventListener(AirCastDeviceEvent.DID_DISCONNECT, connectHandler);
+				airCast.removeEventListener(AirCastDeviceEvent.DEVICE_CONNECTED, connectHandler);
+				airCast.removeEventListener(AirCastDeviceEvent.DEVICE_DISCONNECTED, connectHandler);
 				airCast.stopScan();
 				
 				navigator.replaceView(VideoListView);

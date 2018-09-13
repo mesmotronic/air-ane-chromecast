@@ -1,8 +1,8 @@
-package com.mesmotronic.ane.aircast{
-
-	public class AirCastMediaMetadata {
-
-
+package com.mesmotronic.ane.aircast
+{
+	[Bindable]
+	public class AirCastMediaMetadata 
+	{
  		/** A media type representing generic media content. */
  		public static const MEDIA_METADATA_TYPE_GENERIC:int = 0;
  		/** A media type representing a movie. */
@@ -20,9 +20,7 @@ package com.mesmotronic.ane.aircast{
 		private var _images:Vector.<AirCastImage>;
 		private var _fields:Object;
 
-		public function AirCastMediaMetadata( 	mediaDataType:int,
-												images:Vector.<AirCastImage>,
-												fields:Object )
+		public function AirCastMediaMetadata(mediaDataType:int, images:Vector.<AirCastImage>, fields:Object)
 		{
 			_mediaDataType=mediaDataType;
 			_images=images;
@@ -30,23 +28,24 @@ package com.mesmotronic.ane.aircast{
 		}
 		
 		public function get mediaDataType():int { return this._mediaDataType; }
-		public function get images():Vector.<AirCastImage> { return this._images.slice(); }
-		public function get fields():Object { return this._fields; }
+		public function get images():Vector.<AirCastImage> { return _images.slice(); }
+		public function get fields():Object { return _fields; }
 
-		public static function fromJSONObject(jsonObject:Object):AirCastMediaMetadata
+		public static function fromJSON(jsonObject:Object):AirCastMediaMetadata
 		{
-			
 			var images:Vector.<AirCastImage> = new Vector.<AirCastImage>();
-			for each ( var imageJsonObject:Object in (jsonObject.images as Array))
-				images.push(AirCastImage.fromJSONObject( imageJsonObject ));
-
-			return new AirCastMediaMetadata(
-					jsonObject.mediaDataType,
-					images,
-					jsonObject.fields
-				);
-
+			
+			for each (var imageJsonObject:Object in (jsonObject.images as Array))
+			{
+				images.push(AirCastImage.fromJSON(imageJsonObject));
+			}
+			
+			return new AirCastMediaMetadata
+			(
+				jsonObject.mediaDataType || MEDIA_METADATA_TYPE_GENERIC,
+				images || new Vector.<AirCastImage>(),
+				jsonObject.fields || {}
+			);
 		}
-
 	}
 }
