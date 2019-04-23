@@ -22,3 +22,10 @@ Notes
 -----
 
 There are known issues with this ANE since the release of Adobe AIR 30 SDK: see [issues on GitHub](https://github.com/mesmotronic/air-ane-chromecast/issues) for details.
+
+Make a donation
+---------------
+
+If you find this project useful, why not buy us a coffee (or as many as you think it's worth)?
+
+[![Make a donation](https://www.paypalobjects.com/en_US/GB/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=onlinepayment@mesmotronic.com&item_name=Donation+to+open+source+(Chromecast+ANE)&currency_code=GBP)
